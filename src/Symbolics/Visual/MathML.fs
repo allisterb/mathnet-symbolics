@@ -136,8 +136,8 @@ module private MathMLFormatter =
             apply "arith1" "power" [ formatContentStrict r; formatContentStrict p ]
         | VisualExpression.Root (r, p) ->
             apply "arith1" "root" [ formatContentStrict r; cn p ]
-        | VisualExpression.Function (fn, x) -> failwith "not implemented"
-        | VisualExpression.FunctionN (fn, xs) -> failwith "not implemented"
+        | VisualExpression.Function (fn, power, x) -> failwith "not implemented"
+        | VisualExpression.FunctionN (fn, power, xs) -> failwith "not implemented"
 
 
     /// Format a semantics xml element containing both strict content representation and annotations.
@@ -165,7 +165,7 @@ module Xml =
 [<RequireQualifiedAccess>]
 module MathML =
 
-    let private defaultStyle = DefaultVisualStyle()
+    let private defaultStyle = { VisualExpressionStyle.CompactPowersOfFunctions = false }
 
     [<CompiledName("FormatContentStrictVisual")>]
     let formatContentStrictVisual visualExpression =

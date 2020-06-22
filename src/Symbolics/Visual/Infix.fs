@@ -2,7 +2,6 @@
 
 open System.IO
 open System.Text
-open MathNet.Numerics
 open MathNet.Symbolics
 
 type ParseResult =
@@ -62,12 +61,7 @@ module private InfixParser =
             |> Array.map
                 (fun case -> (case.Name.ToLower(), FSharpValue.MakeUnion(case, [||]) :?> Function))
             |> Array.sortBy (fun (name,_) -> -name.Length)
-
         choice [ for (name, union) in cases -> str_ws name |>> fun _ -> union ] .>> ws
-
-    let applyFunction = function
-        | f, [arg] -> Expression.Apply(f, arg)
-        | f, args -> Expression.ApplyN(f, args)
 
     let pseudoName : Pseudo parser =
         let flags = BindingFlags.NonPublic ||| BindingFlags.Public
@@ -76,14 +70,7 @@ module private InfixParser =
             |> Array.map
                 (fun case -> (case.Name.ToLower(), FSharpValue.MakeUnion(case, [||], flags) :?> Pseudo))
             |> Array.sortBy (fun (name,_) -> -name.Length)
-
         choice [ for (name, union) in cases -> str_ws name |>> fun _ -> union ] .>> ws
-
-    let applyPseudo =
-        function
-        | Sqrt, [arg] -> arg |> Operators.sqrt
-        | Pow, [x;y] -> (x,y) |> Expression.Pow
-        | _ -> failwith "wrong matching"
 
     let expression : Expression parser =
 
@@ -94,11 +81,21 @@ module private InfixParser =
         let absTerm = abs expr
 
         let functionArgs = sepBy expr (str_ws ",") |> parens
-        let functionTerm = functionName .>>. functionArgs |>> applyFunction
 
-        let pseudoTerm = pseudoName .>>. functionArgs |>> applyPseudo
+        let functionTerm = functionName .>>. functionArgs |>> function
+            | f, [arg] -> Expression.Apply(f, arg)
+            | f, args -> Expression.ApplyN(f, args)
 
-        let term = number <|> parensTerm <|> absTerm <|> attempt functionTerm <|> attempt pseudoTerm  <|> identifier
+        let functionPowerTerm = functionName .>>. (str_ws "^" >>. number) .>>. functionArgs |>> function
+            | (f, power), [arg] -> pow (Expression.Apply(f, arg)) power
+            | (f, power), args -> pow (Expression.ApplyN(f, args)) power
+
+        let pseudoTerm = pseudoName .>>. functionArgs |>> function
+            | Sqrt, [arg] -> arg |> Operators.sqrt
+            | Pow, [x;y] -> (x,y) |> Expression.Pow
+            | _ -> failwith "wrong matching"
+
+        let term = number <|> parensTerm <|> absTerm <|> attempt functionTerm <|> attempt functionPowerTerm <|> attempt pseudoTerm  <|> identifier
 
         opp.TermParser <- term
         opp.AddOperator(InfixOperator("+", ws, 1, Associativity.Left, add))
@@ -176,18 +173,24 @@ module private InfixFormatter =
             write "^(1/"
             write (p.ToString())
             write ")"
-        | VisualExpression.Function (fn, x) ->
+        | VisualExpression.Function (fn, power, x) ->
             write fn
+            if power.IsOne |> not then
+                write "^"
+                write (power.ToString())
             write "("
             format write x
             write ")"
-        | VisualExpression.FunctionN (fn, x::xs) ->
+        | VisualExpression.FunctionN (fn, power, x::xs) ->
             write fn
+            if power.IsOne |> not then
+                write "^"
+                write (power.ToString())
             write "("
             format write x
             xs |> List.iter (fun x -> write ","; format write x)
             write ")"
-        | VisualExpression.Sum [] | VisualExpression.Product [] | VisualExpression.FunctionN (_, []) -> failwith "invalid expression"
+        | VisualExpression.Sum [] | VisualExpression.Product [] | VisualExpression.FunctionN (_, _, []) -> failwith "invalid expression"
 
     let functionName = function
         | Abs -> "abs"
@@ -281,7 +284,7 @@ module private InfixFormatter =
 [<RequireQualifiedAccess>]
 module Infix =
 
-    let private defaultStyle = DefaultVisualStyle()
+    let defaultStyle = { VisualExpressionStyle.CompactPowersOfFunctions = false }
 
     /// Strict formatting, prints an exact representation of the expression tree
     [<CompiledName("FormatStrict")>]
@@ -301,18 +304,26 @@ module Infix =
         sb.ToString()
 
     /// Nicer human readable but slightly denormalized output
-    [<CompiledName("Format")>]
-    let format expression =
+    [<CompiledName("FormatStyle")>]
+    let formatStyle visualStyle expression =
         let sb = StringBuilder()
-        let visual = VisualExpression.fromExpression defaultStyle expression
+        let visual = VisualExpression.fromExpression visualStyle expression
         InfixFormatter.format (sb.Append >> ignore) visual
         sb.ToString()
 
     /// Nicer human readable but slightly denormalized output
-    [<CompiledName("FormatWriter")>]
-    let formatWriter (writer:TextWriter) expression =
-        let visual = VisualExpression.fromExpression defaultStyle expression
+    [<CompiledName("Format")>]
+    let format expression = formatStyle defaultStyle expression
+
+    /// Nicer human readable but slightly denormalized output
+    [<CompiledName("FormatStyleWriter")>]
+    let formatStyleWriter visualStyle (writer:TextWriter) expression =
+        let visual = VisualExpression.fromExpression visualStyle expression
         InfixFormatter.format (writer.Write) visual
+
+    /// Nicer human readable but slightly denormalized output
+    [<CompiledName("FormatWriter")>]
+    let formatWriter (writer:TextWriter) expression = formatStyleWriter defaultStyle writer expression
 
     [<CompiledName("Parse")>]
     let parse (infix: string) = InfixParser.parse infix
