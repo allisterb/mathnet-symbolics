@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+      <WebSharperProject>Library</WebSharperProject>
+    <AssemblyName>MathNet.Symbolics</AssemblyName>
+    <RootNamespace>MathNet.Symbolics</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Symbols.fs" />
+    <Compile Include="Approximation.fs" />
+    <Compile Include="Value.fs" />
+    <Compile Include="Expression.fs" />
+    <Compile Include="Numbers.fs" />
+    <Compile Include="Structure.fs" />
+    <Compile Include="Algebraic.fs" />
+    <Compile Include="Calculus.fs" />
+    <Compile Include="Polynomial.fs" />
+    <Compile Include="Rational.fs" />
+    <Compile Include="Exponential.fs" />
+    <Compile Include="Trigonometric.fs" />
+    <Compile Include="Approximate.fs" />
+    <Compile Include="Visual\VisualExpression.fs" />
+    <Compile Include="Visual\Infix.fs" />
+    <Compile Include="Visual\LaTeX.fs" />
+    <Compile Include="Visual\MathML.fs" />
+    <Compile Include="Typed\Quotations.fs" />
+    <Compile Include="Typed\Linq.fs" />
+    <Compile Include="Compile.fs" />
+    <Compile Include="Evaluate.fs" />
+    <Compile Include="SymbolicExpression.fs" />
+  </ItemGroup>
+
+  
+    <ItemGroup>
+        <PackageReference Include="WebSharper" Version="4.5.0.290" />
+        <PackageReference Include="WebSharper.FSharp" Version="4.5.0.290" />
+    </ItemGroup>
+
+  
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\..\src\Thea.Numbers\Thea.Numbers.csproj" />
+      <ProjectReference Include="..\..\..\fparsec\FParsecCS\FParsecCS-LowTrust.csproj" />
+      <ProjectReference Include="..\..\..\fparsec\FParsec\FParsec-LowTrust.fsproj" />
+    </ItemGroup>
+    
+
+
+</Project>
