@@ -9,7 +9,7 @@ open Operators
 module Approximate =
 
     [<CompiledName("Real")>]
-    let real x = Approximation.fromReal x
+    let real x = Approximation.fromDouble x
 
     [<CompiledName("Complex")>]
     let complex r i = Approximation.fromComplex (complex r i)
@@ -17,13 +17,13 @@ module Approximate =
     [<CompiledName("ApproximateSubstitute")>]
     let rec approximateSubstitute (symbols:IDictionary<string, Approximation>) x =
         match x with
-        | Number n -> Values.real (float n)
+        | Number n -> fromDouble (float n)
         | Approximation _ -> x
         | Constant c ->
             match c with
-            | Constant.E -> Values.real Constants.E
-            | Constant.Pi -> Values.real Constants.Pi
-            | Constant.I -> Values.complex Complex.onei
+            | Constant.E -> fromDouble Constants.E
+            | Constant.Pi -> fromDouble Constants.Pi
+            | Constant.I -> fromComplex Complex.onei
         | Sum sx -> sum (List.map (approximateSubstitute symbols) sx)
         | Product px -> product (List.map (approximateSubstitute symbols) px)
         | Power (a,b) -> pow (approximateSubstitute symbols a) (approximateSubstitute symbols b)
@@ -35,6 +35,7 @@ module Approximate =
             match symbols.TryGetValue s with
             | true, a -> a |> Value.approx |> Values.unpack
             | _ -> x
+        | Argument _ -> x
         | FunctionN _
         | ComplexInfinity
         | PositiveInfinity

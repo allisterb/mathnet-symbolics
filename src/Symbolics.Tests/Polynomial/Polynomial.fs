@@ -2,7 +2,9 @@
 
 open NUnit.Framework
 open MathNet.Symbolics
+
 open Operators
+open VariableSets.Alphabet
 
 module Polynomial =
 
@@ -91,7 +93,7 @@ module Polynomial =
 
         Polynomial.isMonomial x (a * x**2) --> true
         Polynomial.isMonomial x (ln(a) * x**2) --> true
-        Polynomial.isMonomial x (log10(a) * x**2) --> true
+        Polynomial.isMonomial x (lg(a) * x**2) --> true
         Polynomial.isMonomial x ((log a (a**2)) * x**2) --> true
         Polynomial.isMonomial x (x**2 + a) --> false
         Polynomial.isPolynomial x (x**2 + x**3) --> true
@@ -100,7 +102,7 @@ module Polynomial =
 
         Polynomial.isMonomialMV (Polynomial.symbols [x;y]) (a * x**2 * y**2) --> true
         Polynomial.isMonomialMV (Polynomial.symbols [x;y]) (ln(a) * x**2 * y**2) --> true
-        Polynomial.isMonomialMV (Polynomial.symbols [x;y]) (log10(a) * x**2 * y**2) --> true
+        Polynomial.isMonomialMV (Polynomial.symbols [x;y]) (lg(a) * x**2 * y**2) --> true
         Polynomial.isMonomialMV (Polynomial.symbols [x;y]) ((log a (a**2)) * x**2 * y**2) --> true
         Polynomial.isMonomialMV (Polynomial.symbols [x;y]) (x**2 + y**2) --> false
         Polynomial.isPolynomialMV (Polynomial.symbols [x;y]) (x**2 + y**2) --> true
@@ -149,13 +151,13 @@ module Polynomial =
         Polynomial.collectTerms x (2*x*a*y + 4*a*x + 3*x*y*b + 5*x*b) ==> "x*(4*a + 5*b + 2*a*y + 3*b*y)"
         Polynomial.collectTerms a (2*x*a*y + 4*a*x + 3*x*y*b + 5*x*b) ==> "5*b*x + 3*b*x*y + a*(4*x + 2*x*y)"
         Polynomial.collectTerms (ln(a)) (2*x*ln(a)*y + 4*x*ln(a) + 3*x*y*b + 5*x*b + c) ==> "c + 5*b*x + 3*b*x*y + (4*x + 2*x*y)*ln(a)"
-        Polynomial.collectTerms (log10(a)) (2*x*log10(a)*y + 4*x*log10(a) + 3*x*y*b + 5*x*b + c) ==> "c + 5*b*x + 3*b*x*y + (4*x + 2*x*y)*log(a)"
+        Polynomial.collectTerms (lg(a)) (2*x*lg(a)*y + 4*x*lg(a) + 3*x*y*b + 5*x*b + c) ==> "c + 5*b*x + 3*b*x*y + (4*x + 2*x*y)*lg(a)"
         Polynomial.collectTerms (log a (a**2)) (2*x*(log a (a**2))*y + 4*x*(log a (a**2)) + 3*x*y*b + 5*x*b + c) ==> "c + 5*b*x + 3*b*x*y + (4*x + 2*x*y)*log(a,a^2)"
 
         Polynomial.collectTermsMV (Polynomial.symbols [x;y]) (2*x*a*y + 4*a*x + 3*x*y*b + 5*x*b) ==> "(4*a + 5*b)*x + (2*a + 3*b)*x*y"
         Polynomial.collectTermsMV (Polynomial.symbols [a;b]) (2*x*a*y + 4*a*x + 3*x*y*b + 5*x*b) ==> "a*(4*x + 2*x*y) + b*(5*x + 3*x*y)"
         Polynomial.collectTermsMV (Polynomial.symbols [x;ln(a)]) (2*x*ln(a)*y + 4*x*ln(a) + 3*x*y*b + 5*x*b + c) ==> "c + x*(5*b + 3*b*y) + x*(4 + 2*y)*ln(a)"
-        Polynomial.collectTermsMV (Polynomial.symbols [x;log10(a)]) (2*x*log10(a)*y + 4*x*log10(a) + 3*x*y*b + 5*x*b + c) ==> "c + x*(5*b + 3*b*y) + x*(4 + 2*y)*log(a)"
+        Polynomial.collectTermsMV (Polynomial.symbols [x;lg(a)]) (2*x*lg(a)*y + 4*x*lg(a) + 3*x*y*b + 5*x*b + c) ==> "c + x*(5*b + 3*b*y) + x*(4 + 2*y)*lg(a)"
         Polynomial.collectTermsMV (Polynomial.symbols [x;(log a (a**2))]) (2*x*(log a (a**2))*y + 4*x*(log a (a**2)) + 3*x*y*b + 5*x*b + c) ==> "c + x*(5*b + 3*b*y) + x*(4 + 2*y)*log(a,a^2)"
 
         Polynomial.isSquareFree x (x**3 + 1) --> true
@@ -214,6 +216,10 @@ module Polynomial =
         Rational.simplify x ((x**2-1)/(x+1)) ==> "-1 + x"
         Rational.simplify x ((x+1)/(x**2 - 1 - (x+1)*(x-1))) ==> "⧝"
         Rational.simplify x (1/(1+1/(x+1)) + 2/(x+2))  ==> "(3 + x)/(2 + x)"
+
+        Rational.simplify x ((x/10)/(x+x**2)) ==> "1/(10 + 10*x)"
+        Rational.simplify x ((x*a)/(x+x**2)) ==> "a/(1 + x)"
+        Rational.simplify x ((x*0.1)/(x+x**2)) ==> "0.1/(1.0 + 1.0*x)"
 
         // http://stackoverflow.com/questions/32791138/extracting-common-terms-with-mathnet-symbolics
         let pn = (1Q/8)*x*y*z + (1Q/2)*x*(y**2)*z

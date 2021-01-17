@@ -3,30 +3,24 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net461;net45;netstandard2.0</TargetFrameworks>
     <AssemblyName>MathNet.Symbolics</AssemblyName>
     <RootNamespace>MathNet.Symbolics</RootNamespace>
     <IsPackable>true</IsPackable>
-    <PackageId>MathNet.Symbolics$(PackageIdSuffix)</PackageId>
-    <VersionPrefix>0.21.0</VersionPrefix>
+    <PackageId>MathNet.Symbolics</PackageId>
+    <VersionPrefix>0.24.0</VersionPrefix>
     <VersionSuffix></VersionSuffix>
-    <Title>Math.NET Symbolics$(TitleSuffix)</Title>
+    <Title>Math.NET Symbolics</Title>
     <Description>Math.NET Symbolics is a basic open source computer algebra library for .Net and Mono. Written in F# but works well in C# as well. Supports .Net Framework 4.5 or higher and .Net Standard 2.0 or higher, on Windows, Linux and Mac.$(DescriptionSuffix)</Description>
-    <PackageReleaseNotes>Support for compact powers of functions in visual expressions. Enabled by default for LaTeX.
-Simplified visual expression styles, no more customizable function mapping.
-Visual expressions can now be converted to full algebraic expressions.
-More convenient interop with primitive number types
-Uses Math.NET Numerics v4.9.1
-Build with .NET Core SDK 3.1.1</PackageReleaseNotes>
+    <PackageReleaseNotes>Usability: Operators module now provides I, E and Pi (instead of pi) (breaking)
+Usability: VariableSets.Alphabet provides a-z variables that can be opened on demand
+Fixes issue where operators were generic where they should not have been
+Minor internal simplifications and streamlining</PackageReleaseNotes>
     <PackageTags>fsharp F# math symbolics algebra simplify solve cas parse</PackageTags>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <NoWarn>2003</NoWarn>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Symbols.fs" />
     <Compile Include="Approximation.fs" />
     <Compile Include="Value.fs" />
@@ -40,15 +34,18 @@ Build with .NET Core SDK 3.1.1</PackageReleaseNotes>
     <Compile Include="Exponential.fs" />
     <Compile Include="Trigonometric.fs" />
     <Compile Include="Approximate.fs" />
+    <Compile Include="Enriched\EnrichedExpression.fs" />
     <Compile Include="Visual\VisualExpression.fs" />
     <Compile Include="Visual\Infix.fs" />
     <Compile Include="Visual\LaTeX.fs" />
     <Compile Include="Visual\MathML.fs" />
+    <Compile Include="Typed\TypedExpression.fs" />
     <Compile Include="Typed\Quotations.fs" />
     <Compile Include="Typed\Linq.fs" />
     <Compile Include="Compile.fs" />
     <Compile Include="Evaluate.fs" />
     <Compile Include="SymbolicExpression.fs" />
+    <Compile Include="VariableSets.fs" />
     <None Include="Script.fsx" />
     <None Include="paket.references" />
   </ItemGroup>

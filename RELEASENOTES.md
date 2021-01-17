@@ -1,3 +1,26 @@
+### 0.24.0 - 2021.01-10
+* Usability: Operators module now provides I, E and Pi (instead of pi) (breaking)
+* Usability: VariableSets.Alphabet provides a-z variables that can be opened on demand
+* Fixes issue where operators were generic where they should not have been
+* Minor internal simplifications and streamlining
+
+### 0.23.0 - 2021-01-08
+* Uses Math.NET Numerics v4.15.0 or newer
+* Better support for decimal values
+* Drop From prefix in Expression.FromInt32 et al (breaking)
+
+### 0.22.0 - 2020-11-01
+* Fix evaluation for Csc *~Andrew Boyarshin*
+* Fully separated unary from N-ary functions, they now have a separate DU
+* Distinct known function names: binary atan is now atan2, unary log (log-10) is now lg.
+* Introducinig Enriched and Typed expressions, preparing for explicit argument nodes.
+* LaTeX: render full-word symbols with mathrm and force cdot in products if necessary
+* Infix/LaTeX: visual expressions can now be formatted also to a TextWriter
+* Infix/LaTeX: approximations now always render with a decimal point (to clearly distinct from integers)
+* Infix: parsing logic reworked to parse via visual expressions (no longer forcing auto-simplified full expressions)
+* Approximations now reduce 0.0*x to 0.0 as a practical compromise.
+* Polynomial and rational algorithms handle approximations better (especially 0.0).
+
 ### 0.21.0 - 2020-05-02
 * Support for compact powers of functions in visual expressions. Enabled by default for LaTeX.
 * Simplified visual expression styles, no more customizable function mapping.

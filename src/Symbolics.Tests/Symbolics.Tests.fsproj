@@ -4,7 +4,6 @@
         <OutputType>Exe</OutputType>
         <GenerateProgramFile>false</GenerateProgramFile>
         <TargetFrameworks>net461;netcoreapp3.1</TargetFrameworks>
-        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <AssemblyName>MathNet.Symbolics.Tests</AssemblyName>
         <RootNamespace>MathNet.Symbolics.Tests</RootNamespace>
         <IsPackable>false</IsPackable>
@@ -15,17 +14,16 @@
         <ProjectReference Include="..\Symbolics\Symbolics.fsproj" />
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="AssemblyInfo.fs" />
         <Compile Include="Global.fs" />
         <Compile Include="Operators\Arithmetic.fs" />
         <Compile Include="Operators\Exponential.fs" />
         <Compile Include="Operators\Trigonometry.fs" />
         <Compile Include="Operators\Bessel.fs" />
         <Compile Include="Polynomial\Polynomial.fs" />
+        <Compile Include="Visual\VisualExpressions.fs" />
         <Compile Include="Visual\Infix.fs" />
         <Compile Include="Visual\LaTeX.fs" />
         <Compile Include="Visual\MathML.fs" />
-        <Compile Include="Visual\VisualExpressions.fs" />
         <Compile Include="Compilation\Compilation.fs" />
         <Compile Include="SymbolicExpressions.fs" />
         <Compile Include="Tests.fs" />

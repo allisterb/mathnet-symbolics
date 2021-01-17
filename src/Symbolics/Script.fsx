@@ -1,8 +1,8 @@
-﻿#load @"..\..\packages\MathNet.Numerics.FSharp\MathNet.Numerics.fsx"
-
-//#load "MathNet.Symbolics.fsx"
-#I @"..\..\out\lib\Net40"
+﻿#I @"..\..\packages\MathNet.Numerics.FSharp\lib\net45"
+#I @"..\..\packages\MathNet.Numerics\lib\net40"
+#I @"..\..\out\Symbolics\Lib\net45"
 #r "MathNet.Numerics.dll"
+#r "MathNet.Numerics.FSharp.dll"
 #r "MathNet.Symbolics.dll"
 
 open System
@@ -11,19 +11,9 @@ open MathNet.Numerics
 open MathNet.Symbolics
 
 open Operators
+open VariableSets.Alphabet
 
 fsi.AddPrinter Infix.format
-
-// variables:
-let x = symbol "x"
-let y = symbol "y"
-let z = symbol "z"
-let a = symbol "a"
-let b = symbol "b"
-let c = symbol "c"
-let d = symbol "d"
-let e = symbol "e"
-let f = symbol "f"
 
 
 // This script is just for local experiments
@@ -238,7 +228,6 @@ Rational.simplify x (1/(1+1/(x+1)) + 2/(x+2))  // (3 + x)/(2 + x)
 
 // Printing
 Infix.format (1/(a*b))        // "1/(a*b)"
-Infix.formatStrict (1/(a*b))  // "a^(-1)*b^(-1)"
 LaTeX.format (1/(a*b))        // "\frac{1}{ab}"
 
 
