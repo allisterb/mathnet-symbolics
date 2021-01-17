@@ -2,11 +2,12 @@ namespace MathNet.Symbolics.Tests
 
 open NUnit.Framework
 open FsUnit
-open FsUnitTyped
 
 open MathNet.Numerics
 open MathNet.Symbolics
+
 open Operators
+open VariableSets.Alphabet
 
 module Expressions =
 
@@ -48,11 +49,11 @@ module Expressions =
     [<Test>]
     let ``Constant Expressions`` () =
 
-        Expression.Pi ==> "π"
-        Expression.E ==> "e"
-        Expression.I ==> "j"
-        Expression.Real(1.23) ==> "1.23"
-        Expression.Real(-0.23) ==> "-0.23"
+        Pi ==> "π"
+        E ==> "e"
+        I ==> "j"
+        fromDouble 1.23 ==> "1.23"
+        fromDouble -0.23 ==> "-0.23"
 
     [<Test>]
     let ``Approximations`` () =
@@ -60,7 +61,7 @@ module Expressions =
         //real 1.1 + real 2.2 ==> "3.3"
         //real 1.1 * real 2.2 ==> "2.42"
 
-        2 * real 2.0 ==> "4"
+        2 * real 2.0 ==> "4.0"
         x + 2*x ==> "3*x"
         x + 2.2*x ==> "3.2*x"
 
@@ -167,7 +168,7 @@ module Expressions =
         2*x*y*z*z**2 ==> "2*x*y*z^3"
 
         (-2) + (-3)*x + 5*y ==> "-2 - 3*x + 5*y"
-        (-2.0) + (-3.0)*x + 5.0*y ==> "-2 - 3*x + 5*y"
+        (-2.0) + (-3.0)*x + 5.0*y ==> "-2.0 - 3.0*x + 5.0*y"
         (2*x)/(3*y) ==> "(2*x)/(3*y)"
         (1*x)/(3*y) ==> "x/(3*y)"
         (a*x)/(3*y) ==> "(a*x)/(3*y)"
@@ -187,30 +188,22 @@ module Expressions =
         (-2*a*x)/(3) ==> "-2/3*a*x"
         (-1*a*x)/(3) ==> "-1/3*a*x"
 
-        // There is no subtraction, negation or division in simplified expressions (strict):
-        1 / x ===> "x^(-1)" // strict
-        1 / x ==> "1/x" // nice
-        -x ===> "(-1)*x"
+        1 / x ==> "1/x"
         -x ==> "-x"
-        2 + 1/x - 1 ===> "1 + x^(-1)"
         2 + 1/x - 1 ==> "1 + 1/x"
-        -(-x) ===> "x"
         -(-x) ==> "x"
-        1 / (1 / x) ===> "x"
         1 / (1 / x) ==> "x"
 
         2*x*3 ==> "6*x"
-        -x*y/3 ===> "(-1/3)*x*y"
         -x*y/3 ==> "-1/3*x*y"
 
         ((x*y)**(1Q/2)*z**2)**2 ==> "x*y*z^4"
-        (a/b/(c*a))*(c*d/a)/d ===> "a^(-1)*b^(-1)" // strict
-        (a/b/(c*a))*(c*d/a)/d ==> "1/(a*b)" // nice
+        (a/b/(c*a))*(c*d/a)/d ==> "1/(a*b)"
         a**(3Q/2)*a**(1Q/2) ==> "a^2"
 
         x + ln x ==> "x + ln(x)"
         x + ln (x+1) ==> "x + ln(1 + x)"
-        x + log10 (x+1) ==> "x + log(1 + x)"
+        x + lg (x+1) ==> "x + lg(1 + x)"
         x + (log x (x+1)) ==> "x + log(x,1 + x)"
         2*abs x ==> "2*|x|"
         x + abs (-x) ==> "x + |x|"
@@ -238,7 +231,6 @@ module Expressions =
         (a+b)-(a+b) ==> "a + b - (a + b)"
         (a+b)-(a+b) |> Algebraic.expand ==> "0"
         2*(a+b)-(a+b) ==> "a + b"
-        (a+b)-2*(a+b) |> Algebraic.expand ===> "(-1)*a + (-1)*b"
         (a+b)-2*(a+b) |> Algebraic.expand ==> "-a - b"
 
         (a*b)/(b*a) ==> "1"
@@ -252,8 +244,7 @@ module Expressions =
         (x*(y+1)**(3Q/2)+1)*(x*(y+1)**(3Q/2)-1) ==> "(-1 + x*(1 + y)^(3/2))*(1 + x*(1 + y)^(3/2))"
         (x*(y+1)**(3Q/2)+1)*(x*(y+1)**(3Q/2)-1) |> Algebraic.expand |> Algebraic.expand ==> "-1 + x^2 + 3*x^2*y + 3*x^2*y^2 + x^2*y^3"
         sin(a*(x+y)) |> Algebraic.expand ==> "sin(a*(x + y))" // does not expand
-        a/(b*(x+y)) |> Algebraic.expand ===> "a*b^(-1)*(x + y)^(-1)" // strict; does not expand
-        a/(b*(x+y)) |> Algebraic.expand ==> "a/(b*(x + y))" // nice; does not expand
+        a/(b*(x+y)) |> Algebraic.expand ==> "a/(b*(x + y))" // does not expand
 
     [<Test>]
     let ``Structural Operators`` () =
@@ -285,18 +276,18 @@ module Expressions =
         negate (x + y**2) ==> "-(x + y^2)"
 
         Algebraic.factors (b*cos(x)*ln(d)*x) ==+> ["b"; "x"; "ln(d)"; "cos(x)"]
-        Algebraic.factors (b*cos(x)*log10(d)*x) ==+> ["b"; "x"; "log(d)"; "cos(x)"]
-        Algebraic.factors (b*cos(x)*(log d (d*2))*x) ==+> ["b"; "x"; "log(d,2*d)"; "cos(x)"]
+        Algebraic.factors (b*cos(x)*lg(d)*x) ==+> ["b"; "x"; "lg(d)"; "cos(x)"]
+        Algebraic.factors (b*cos(x)*(log d (d*2))*x) ==+> ["b"; "x"; "cos(x)"; "log(d,2*d)"]
         Algebraic.factors (b+cos(x)) ==+> ["b + cos(x)"]
         Algebraic.summands (b+cos(x)+ln(d)+x) ==+> ["b"; "x"; "ln(d)"; "cos(x)"]
-        Algebraic.summands (b+cos(x)+log10(d)+x) ==+> ["b"; "x"; "log(d)"; "cos(x)"]
-        Algebraic.summands (b+cos(x)+(log d (d*2))+x) ==+> ["b"; "x"; "log(d,2*d)"; "cos(x)"]
+        Algebraic.summands (b+cos(x)+lg(d)+x) ==+> ["b"; "x"; "lg(d)"; "cos(x)"]
+        Algebraic.summands (b+cos(x)+(log d (d*2))+x) ==+> ["b"; "x"; "cos(x)"; "log(d,2*d)"]
         Algebraic.summands (b*cos(x)) ==+> ["b*cos(x)"]
 
         Algebraic.factorsInteger (2Q/3*b*cos(x)) --> (2I, [1Q/3; b; cos(x)])
 
         Algebraic.separateFactors x (b*cos(x)*ln(d)*x) ==|> ("b*ln(d)", "x*cos(x)")
-        Algebraic.separateFactors x (b*cos(x)*log10(d)*x) ==|> ("b*log(d)", "x*cos(x)")
+        Algebraic.separateFactors x (b*cos(x)*lg(d)*x) ==|> ("b*lg(d)", "x*cos(x)")
         Algebraic.separateFactors x (b*cos(x)*(log d (d*2))*x) ==|> ("b*log(d,2*d)", "x*cos(x)")
         Algebraic.separateFactors x (c*x*sin(x)/2) ==|> ("c/2", "x*sin(x)")
 
@@ -325,7 +316,7 @@ module Expressions =
         Exponential.expand (1/(exp(2*x) - (exp(x))**2)) ==> "⧝"
         Exponential.expand (exp((x+y)*(x-y))) ==> "exp(x^2)/exp(y^2)"
         Exponential.expand (ln((c*x)**a) + ln(y**b*z)) ==> "a*ln(c) + a*ln(x) + b*ln(y) + ln(z)"
-        Exponential.expand (log10((c*x)**a) + log10(y**b*z)) ==> "a*log(c) + a*log(x) + b*log(y) + log(z)"
+        Exponential.expand (lg((c*x)**a) + lg(y**b*z)) ==> "a*lg(c) + a*lg(x) + b*lg(y) + lg(z)"
         Exponential.expand ((log 5Q ((c*x)**a)) + (log 3Q (y**b*z))) ==> "a*log(5,c) + a*log(5,x) + b*log(3,y) + log(3,z)"
 
         Exponential.contract (exp(x)*exp(y)) ==> "exp(x + y)"
@@ -414,8 +405,8 @@ module Expressions =
         Calculus.differentiate x ((ln x) / (ln 10Q)) ==> "1/(x*ln(10))"
         Calculus.differentiate x (ln x) ==> "1/x"
         Calculus.differentiate x (ln (x**2)) ==> "2/x"
-        Calculus.differentiate x (log10 x) ==> "1/(x*ln(10))"
-        Calculus.differentiate x (log10 (x**2)) ==> "2/(x*ln(10))"
+        Calculus.differentiate x (lg x) ==> "1/(x*ln(10))"
+        Calculus.differentiate x (lg (x**2)) ==> "2/(x*ln(10))"
         Calculus.differentiate x (log 10Q x) ==> "1/(x*ln(10))"
         Calculus.differentiate x (log x (x**2)) ==> "2/(x*ln(x)) - ln(x^2)/(x*(ln(x))^2)"
 
@@ -450,7 +441,7 @@ module Expressions =
         Evaluate.evaluate symbols (a*x**2 + b*x + c |> Structure.substitute x (number 1/2)) --> FloatingPoint.Complex (complex 3.0 -1.0)
         Evaluate.evaluate symbols (1Q/0Q) --> FloatingPoint.ComplexInf
 
-        (fun () -> Evaluate.evaluate symbols (f) |> ignore) |> should (throwWithMessage "Failed to find symbol: f") typeof<System.Exception>
+        (fun () -> Evaluate.evaluate symbols (f) |> ignore) |> should (throwWithMessage "Failed to find symbol f") typeof<System.Exception>
 
         match Evaluate.evaluate symbols (sqrt(-1Q)) with
         | FloatingPoint.Complex c ->
@@ -500,10 +491,10 @@ module Expressions =
         let exrp = Infix.parseOrUndefined "tan(x)*25*csc(x)"
         exrp ==> "25*tan(x)*csc(x)"
 
-        let expr2 = Operators.sec 32Q
+        let expr2 = sec 32Q
         expr2 ==> "sec(32)"
 
-        let exrp3 = Expression.Apply(Function.Cot, expr2)
+        let exrp3 = apply Cot expr2
         exrp3 ==> "cot(sec(32))"
 
         let expr4 = Infix.parseOrUndefined "25*x*sec(x)"

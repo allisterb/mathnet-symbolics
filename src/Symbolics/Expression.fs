@@ -8,12 +8,14 @@ type Expression =
     | Number of BigRational
     | Approximation of Approximation
     | Identifier of Symbol
+    | Argument of Symbol
     | Constant of Constant
     | Sum of Expression list
     | Product of Expression list
     | Power of Expression * Expression
     | Function of Function * Expression
-    | FunctionN of Function * (Expression list)
+    | FunctionN of FunctionN * (Expression list)
+    //| FunctionDef of Symbol * (Symbol list) * Expression
     | ComplexInfinity
     | PositiveInfinity
     | NegativeInfinity
@@ -38,12 +40,6 @@ module Values =
         | Value.PositiveInfinity -> PositiveInfinity
         | Value.NegativeInfinity -> NegativeInfinity
         | Value.Undefined -> Undefined
-
-    let real (x:float) = Value.fromReal x |> unpack
-    let real32 (x:float32) = Value.fromReal32 x |> unpack
-    let complex (x:complex) = Value.fromComplex x |> unpack
-    let complex32 (x:complex32) = Value.fromComplex32 x |> unpack
-    let rational (x:BigRational) = Number x
 
     let negate a = Value.negate a |> unpack
     let abs a = Value.abs a |> unpack
@@ -106,7 +102,7 @@ module ExpressionPatterns =
     /// Terminal node, either a number, identifier/symbol or constant (including infinity).
     /// Warning: Undefined is *not* included.
     let (|Terminal|_|) = function
-        | Number _ | Identifier _ | Constant _ as t -> Some t
+        | Number _ | Identifier _ | Argument _ | Constant _ as t -> Some t
         | _ -> None
 
     /// Recognizes a sin or cos expression
@@ -129,51 +125,58 @@ module Operators =
 
     open ExpressionPatterns
 
-    let zero = Number BigRational.Zero
-    let one = Number BigRational.One
-    let two = Number (BigRational.FromInt 2)
-    let private four = Number (BigRational.FromInt 4)
-    let minusOne = Number (BigRational.FromInt -1)
-    let pi = Constant Pi
+    let zero : Expression = Number BigRational.Zero
+    let one : Expression = Number BigRational.One
+    let two : Expression = Number (BigRational.FromInt 2)
+    let private four : Expression = Number (BigRational.FromInt 4)
+    let minusOne : Expression = Number (BigRational.FromInt -1)
 
-    let symbol (name:string) = Identifier (Symbol name)
+    let Pi : Expression = Constant Pi
+    let I : Expression = Constant I
+    let E : Expression = Constant E
 
-    let undefined = Expression.Undefined
-    let infinity = Expression.PositiveInfinity
-    let complexInfinity = Expression.ComplexInfinity
-    let negativeInfinity = Expression.NegativeInfinity
+    let symbol (name:string) : Expression = Identifier (Symbol name)
 
-    let real floatingPoint = Values.real floatingPoint
+    let undefined : Expression = Expression.Undefined
+    let infinity : Expression = Expression.PositiveInfinity
+    let complexInfinity : Expression = Expression.ComplexInfinity
+    let negativeInfinity : Expression = Expression.NegativeInfinity
 
-    let fromReal floatingPoint = Values.real floatingPoint
-    let fromReal32 floatingPoint = Values.real32 floatingPoint
-    let fromComplex floatingPoint = Values.complex floatingPoint
-    let fromComplex32 floatingPoint = Values.complex32 floatingPoint
+    let fromDouble (floatingPoint:float) : Expression = Value.fromDouble floatingPoint |> Values.unpack
+    let fromSingle (floatingPoint:float32) : Expression = Value.fromSingle floatingPoint |> Values.unpack
+    let fromComplex (floatingPoint:complex) : Expression = Value.fromComplex floatingPoint |> Values.unpack
+    let fromComplex32 (floatingPoint:complex32) : Expression = Value.fromComplex32 floatingPoint |> Values.unpack
 
-    let fromInt32 (x:int) = Number (BigRational.FromInt x)
-    let fromInt64 (x:int64) = Number (BigRational.FromBigInt (BigInteger(x)))
-    let fromInteger (x:BigInteger) = Number (BigRational.FromBigInt x)
-    let fromIntegerFraction (n:BigInteger) (d:BigInteger) = Number (BigRational.FromBigIntFraction (n, d))
-    let fromRational (x:BigRational) = Number x
+    let fromDecimal (x:decimal) : Expression = Number (BigRational.FromDecimal x)
 
-    let number = fromInt32
+    let fromInt32 (x:int) : Expression = Number (BigRational.FromInt x)
+    let fromInt64 (x:int64) : Expression = Number (BigRational.FromBigInt (BigInteger(x)))
+    let fromInteger (x:BigInteger) : Expression = Number (BigRational.FromBigInt x)
+    let fromIntegerFraction (n:BigInteger) (d:BigInteger) : Expression = Number (BigRational.FromBigIntFraction (n, d))
+    let fromRational (x:BigRational) : Expression = Number x
 
-    let isZero = function | Zero -> true | _ -> false
-    let isOne = function | One -> true | _ -> false
-    let isMinusOne = function | MinusOne -> true | _ -> false
-    let isPositive = function | Positive -> true | _ -> false
-    let isNegative = function | Negative -> true | _ -> false
-    let isPositiveInfinity = function | PositiveInfinity -> true | _ -> false
-    let isNegativeInfinity = function | NegativeInfinity -> true | _ -> false
-    let isComplexInfinity = function | ComplexInfinity -> true | _ -> false
-    let isInfinity = function | PositiveInfinity | ComplexInfinity | NegativeInfinity -> true | _ -> false
+    let real : float -> Expression = fromDouble
+    let number : int -> Expression = fromInt32
 
-    let internal orderRelation (x:Expression) (y:Expression) =
+    let isZero : Expression -> bool = function | Zero -> true | _ -> false
+    let isOne : Expression -> bool  = function | One -> true | _ -> false
+    let isMinusOne : Expression -> bool  = function | MinusOne -> true | _ -> false
+    let isPositive : Expression -> bool  = function | Positive -> true | _ -> false
+    let isNegative : Expression -> bool  = function | Negative -> true | _ -> false
+    let isPositiveInfinity : Expression -> bool  = function | PositiveInfinity -> true | _ -> false
+    let isNegativeInfinity : Expression -> bool  = function | NegativeInfinity -> true | _ -> false
+    let isComplexInfinity : Expression -> bool  = function | ComplexInfinity -> true | _ -> false
+    let isInfinity : Expression -> bool  = function | PositiveInfinity | ComplexInfinity | NegativeInfinity -> true | _ -> false
+
+    let isApproximateZero : Expression -> bool  = function | Zero -> true | Approximation (Real r) when r = 0.0 -> true | _ -> false
+
+    let internal orderRelation (x:Expression) (y:Expression) : bool  =
         let rec compare a b =
             match a, b with
             | Number x, Number y -> x < y
             | Approximation x, Approximation y -> Approximation.orderRelation x y
             | Identifier x, Identifier y -> x < y
+            | Argument x, Argument y -> x < y
             | Constant x, Constant y -> x < y
             | Sum xs, Sum ys | Product xs, Product ys -> compareZip (List.rev xs) (List.rev ys)
             | Power (xr,xp), Power (yr,yp) -> if xr <> yr then compare xr yr else compare xp yp
@@ -191,10 +194,12 @@ module Operators =
             | x, Power (yr, yp) -> if x <> yr then compare x yr else compare one yp
             | Sum xs, y -> compareZip (List.rev xs) [y]
             | x, Sum ys -> compareZip [x] (List.rev ys)
-            | Function (xf, x), FunctionN (yf, ys) -> if xf <> yf then xf < yf else compareZip [x] (List.rev ys)
-            | FunctionN (xf, xs), Function (yf, y) -> if xf <> yf then xf < yf else compareZip (List.rev xs) [y]
+            | Function _, FunctionN _ -> true
+            | FunctionN _, Function _ -> false
             | Identifier _, _ -> true
             | _, Identifier _ -> false
+            | Argument _, _ -> true
+            | _, Argument _ -> false
             | ComplexInfinity, _ -> true
             | _, ComplexInfinity -> false
             | PositiveInfinity, _ -> true
@@ -211,7 +216,7 @@ module Operators =
             | _, [] -> false
         compare x y
 
-    let rec add x y =
+    let rec add (x:Expression) (y:Expression) : Expression =
         // none of the summands is allowed to be a sum
         // only the first summand is allowed to be a number
 
@@ -270,7 +275,7 @@ module Operators =
         | a, Sum bx -> merge [a] bx
         | a, b -> merge [a] [b]
 
-    and multiply x y =
+    and multiply (x:Expression) (y:Expression) : Expression =
         // none of the factors is allowed to be a product
         // only the first factor is allowed to be a number
 
@@ -316,6 +321,8 @@ module Operators =
         | One, b | b, One -> b
         | Zero, oo | oo, Zero when isInfinity oo -> undefined
         | Zero, _ | _, Zero -> zero
+        | Approximation (Real a), oo | oo, Approximation (Real a) when a = 0.0 && isInfinity oo -> undefined
+        | Approximation (Real a), _ | _, Approximation (Real a) when a = 0.0 -> Approximation (Real 0.0)
         | ComplexInfinity, _ | _, ComplexInfinity -> complexInfinity
         | PositiveInfinity, Positive | Positive, PositiveInfinity -> infinity
         | PositiveInfinity, Negative | Negative, PositiveInfinity -> negativeInfinity
@@ -333,7 +340,7 @@ module Operators =
         | a, Product bx -> merge [a] bx
         | a, b -> merge [a] [b]
 
-    and pow x y =
+    and pow (x:Expression) (y:Expression) : Expression =
         // if power is a number, radix must not be an integer, fraction, product or power
         match x, y with
         | Undefined, _ | _, Undefined -> undefined
@@ -375,17 +382,20 @@ module Operators =
         | Power (r, p) -> pow r (negate p)
         | x -> Power (x, minusOne)
 
-    let divide x y = multiply x (invert y)
+    let divide (x:Expression) (y:Expression) : Expression = multiply x (invert y)
 
-    let sum (xs:Expression list) = if List.isEmpty xs then zero else List.reduce add xs
-    let sumSeq (xs:Expression seq) = Seq.fold add zero xs
-    let product (xs:Expression list) = if List.isEmpty xs then one else List.reduce multiply xs
-    let productSeq (xs:Expression seq) = Seq.fold multiply one xs
+    let sum (xs:Expression list) : Expression = if List.isEmpty xs then zero else List.reduce add xs
+    let sumSeq (xs:Expression seq) : Expression = Seq.fold add zero xs
+    let product (xs:Expression list) : Expression = if List.isEmpty xs then one else List.reduce multiply xs
+    let productSeq (xs:Expression seq) : Expression = Seq.fold multiply one xs
 
-    let root n x = pow x (pow n minusOne)
-    let sqrt x = root two x
+    let root (n:Expression) (x:Expression) : Expression = pow x (pow n minusOne)
+    let sqrt (x:Expression) : Expression = root two x
 
-    let abs = function
+    let private PiI = multiply Pi I
+    let private PiIHalf = divide PiI two
+
+    let abs : Expression -> Expression = function
         | Undefined -> undefined
         | oo when isInfinity oo -> infinity
         | Constant I -> one
@@ -393,48 +403,48 @@ module Operators =
         | Product ((Values.Value v)::ax) when Value.isNegative v -> Function (Abs, multiply (Values.abs v) (Product ax))
         | x -> Function (Abs, x)
 
-    let exp = function
+    let exp : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity -> infinity
         | NegativeInfinity -> zero
         | Zero -> one
-        | One -> Constant E
-        | MinusOne -> invert (Constant E)
+        | One -> E
+        | MinusOne -> invert E
         | Product [Constant Pi; Constant I;] -> minusOne // exp(n*pi*j) for ...-1, -1/2, 0, 1/2, 1,...
         | Product [Number n; Constant Pi; Constant I;] when n.IsInteger
             -> if n.Numerator.IsEven then one else minusOne
         | Product [Number n; Constant Pi; Constant I;] when (n*2N).IsInteger
-            -> if (n + 1N/2N).Numerator.IsEven then negate (Constant I) else Constant I
+            -> if (n + 1N/2N).Numerator.IsEven then negate I else I
         | Function (Ln, x') -> x' // exp(ln(x)) = x
         | x -> Function (Exp, x)
-    let rec ln = function
+    let rec ln : Expression -> Expression = function
         | Undefined -> undefined
         | oo when isInfinity oo -> infinity
         | Zero -> negativeInfinity
         | One -> zero
-        | MinusOne -> multiply pi (Constant I) // ln(-1) = pi*j
+        | MinusOne -> PiI // ln(-1) = pi*j
         | Constant E -> one
-        | Constant I -> divide (multiply pi (Constant I)) two // ln(j) = 1/2*pi*j
+        | Constant I -> PiIHalf // ln(j) = 1/2*pi*j
         | Number n when n.Numerator.Equals(1I) && n.IsPositive
             -> Function (Ln, fromInteger n.Denominator) |> negate // ln(1/x) = -ln(x) for positive x
         | Power (x', Number n) when n.Equals(-1N) && isPositive x'
             -> ln x' |> negate
         | x -> Function (Ln, x)
-    let log10 = function
+    let lg : Expression -> Expression = function
         | Undefined -> undefined
         | Zero -> negativeInfinity
         | One -> zero
         | Number n when n.Equals(10N) -> one
         | oo when isInfinity oo -> infinity
-        | x -> Function (Log, x)
-    let log basis x = FunctionN (Log, [basis; x])
+        | x -> Function (Lg, x)
+    let log (basis:Expression) (x:Expression) : Expression = FunctionN (Log, [basis; x])
 
-    let sin = function
+    let sin : Expression -> Expression = function
         | Undefined -> undefined
         | oo when isInfinity oo -> undefined
         | Zero -> zero
         | Constant Pi -> zero // sin(n*pi) = 0 for integer n
-        | Constant I -> multiply (Constant I) (Function (Sinh, one))  // sin(j) = j*sinh(1), sin(j*x) = j*sinh(x)
+        | Constant I -> multiply I (Function (Sinh, one))  // sin(j) = j*sinh(1), sin(j*x) = j*sinh(x)
         | Number n when n.IsNegative -> negate (Function (Sin, Number -n))
         | Product ((Number n)::ax) when n.IsNegative -> negate (Function (Sin, multiply (Number -n) (Product ax)))
         | Function (Asin, x') -> x' // sin(asin(x)) = x
@@ -444,7 +454,7 @@ module Operators =
         | Function (Asec, x') -> sqrt (subtract one (invert (pow x' two))) // sin(asec(x)) = sqrt(1 - 1/x^2)
         | Function (Acot, x') -> invert (multiply x' (sqrt (add one (invert (pow x' two))))) // sin(acot(x)) = 1/(x*sqrt(1 + 1/x^2))
         | x -> Function (Sin, x)
-    let cos = function
+    let cos : Expression -> Expression = function
         | Undefined -> undefined
         | oo when isInfinity oo -> undefined
         | Zero -> one
@@ -459,12 +469,12 @@ module Operators =
         | Function (Asec, x') -> invert x' // cos(asec(x)) = 1/x
         | Function (Acot, x') -> invert (sqrt (add one (invert (pow x' two)))) // cos(acot(x)) = 1/sqrt(1/x^2 + 1)
         | x -> Function (Cos, x)
-    let tan = function
+    let tan : Expression -> Expression = function
         | Undefined -> undefined
         | oo when isInfinity oo -> undefined
         | Zero -> zero
         | Constant Pi -> zero // tan(pi) = 0
-        | Constant I -> multiply (Constant I) (Function (Tanh, one)) // tan(j) = j*tanh(1), tan(j*x) = j*tanh(x)
+        | Constant I -> multiply I (Function (Tanh, one)) // tan(j) = j*tanh(1), tan(j*x) = j*tanh(x)
         | Number n when n.IsNegative -> negate (Function (Tan, Number -n))
         | Product ((Number n)::ax) when n.IsNegative -> negate (Function (Tan, multiply (Number -n) (Product ax)))
         | Function (Asin, x') -> divide x' (sqrt (subtract one (pow x' two))) // tan(asin(x)) = x/sqrt(1 - x^2)
@@ -474,12 +484,12 @@ module Operators =
         | Function (Asec, x') -> multiply x' (sqrt (subtract one (invert (pow x' two)))) // tan(asec(x)) = x*sqrt(1 - 1/x^2)
         | Function (Acot, x') -> invert x' // tan(acot(x)) = 1/x
         | x -> Function (Tan, x)
-    let csc = function
+    let csc : Expression -> Expression = function
         | Undefined -> undefined
         | oo when isInfinity oo -> undefined
         | Zero -> complexInfinity // csc(0) = coo
         | Constant Pi -> complexInfinity // csc(pi) = coo
-        | Constant I -> Function (Csch, one) |> multiply (Constant I) |> negate // csc(j) = -j*csch(1), csc(j*x) = -j*csch(x)
+        | Constant I -> Function (Csch, one) |> multiply I |> negate // csc(j) = -j*csch(1), csc(j*x) = -j*csch(x)
         | Number n when n.IsNegative -> Function (Csc, Number -n) |> negate // csc(-x) = -csc(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Csc, multiply (Number -n) (Product ax)) |> negate
         | Function (Asin, x') -> invert x' // csc(asin(x)) = 1/x
@@ -489,7 +499,7 @@ module Operators =
         | Function (Asec, x') -> invert (sqrt (subtract one (invert (pow x' two)))) // csc(asec(x)) = 1/sqrt(1 - 1/x^2)
         | Function (Acot, x') -> multiply x' (sqrt (add one (invert (pow x' two)))) // csc(acot(x)) = (x*sqrt(1 + 1/x^2))
         | x -> Function (Csc, x)
-    let sec = function
+    let sec : Expression -> Expression = function
         | Undefined -> undefined
         | oo when isInfinity oo -> undefined
         | Zero -> one // sec(0) = 1
@@ -504,12 +514,12 @@ module Operators =
         | Function (Asec, x') -> x' // sec(asec(x)) = x
         | Function (Acot, x') -> sqrt (add one (invert (pow x' two))) // sec(acot(x)) = sqrt(1 + 1/x^2)
         | x -> Function (Sec, x)
-    let cot = function
+    let cot : Expression -> Expression = function
         | Undefined -> undefined
         | oo when isInfinity oo -> undefined
         | Zero -> complexInfinity // cot(0) = coo
         | Constant Pi -> complexInfinity // cot(pi) = coo
-        | Constant I -> Function (Coth, one) |> multiply (Constant I) |> negate // cot(j) = -j*coth(1), cot(j*x) = -j*coth(x)
+        | Constant I -> Function (Coth, one) |> multiply I |> negate // cot(j) = -j*coth(1), cot(j*x) = -j*coth(x)
         | Number n when n.IsNegative -> Function (Cot, Number -n) |> negate // cot(-x) = -cot(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Cot, multiply (Number -n) (Product ax)) |> negate
         | Function (Asin, x') -> divide (sqrt (subtract one (pow x' two))) x' // cot(asin(x)) = sqrt(1 - x^2)/x
@@ -520,12 +530,12 @@ module Operators =
         | Function (Acot, x') -> x' // cot(acot(x)) = x
         | x -> Function (Cot, x)
 
-    let sinh = function
+    let sinh : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity -> infinity // sinh(oo) = oo
         | NegativeInfinity -> negativeInfinity // sinh(-oo) = -oo
         | Zero -> zero // sinh(0) = 0
-        | Constant I -> Function (Sin, one) |> multiply (Constant I) // sinh(j) = j*sin(1), sinh(j*x) = j*sin(x)
+        | Constant I -> Function (Sin, one) |> multiply I // sinh(j) = j*sin(1), sinh(j*x) = j*sin(x)
         | Number n when n.IsNegative -> Function (Sinh, Number -n) |> negate // sinh(-x) = -sinh(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Sinh, multiply (Number -n) (Product ax)) |> negate
         | Function (Asinh, x') -> x' // sinh(asinh(x)) = x
@@ -535,7 +545,7 @@ module Operators =
         | Function (Asech, x') -> divide (multiply (add x' one) (sqrt (divide (subtract one x') (add x' one)))) x' // sinh(asech(x)) = ((x + 1)*sqrt((1 - x)/(x + 1)))/x
         | Function (Acoth, x') -> invert (multiply x' (sqrt (subtract one (invert (pow x' two))))) // sinh(acoth(x)) = 1/(x*sqrt(1 - 1/x^2))
         | x -> Function (Sinh, x)
-    let cosh = function
+    let cosh : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity | NegativeInfinity -> infinity // cosh(oo) = cosh(-oo) = oo
         | Zero -> one // cosh(0) = 1
@@ -549,12 +559,12 @@ module Operators =
         | Function (Asech, x') -> invert x' // cosh(asech(x)) = 1/x
         | Function (Acoth, x') -> invert (sqrt (subtract one (invert (pow x' two)))) // cosh(acoth(x)) = 1/sqrt(1 - 1/x^2)
         | x -> Function (Cosh, x)
-    let tanh = function
+    let tanh : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity -> one // tanh(oo) = 1, tanh(-oo) = -1
         | NegativeInfinity -> minusOne
         | Zero -> zero // tanh(0) = 0
-        | Constant I -> Function (Tan, one) |> multiply (Constant I) // tanh(j) = j*tan(1), tanh(j*x) = j*tan(x)
+        | Constant I -> Function (Tan, one) |> multiply I // tanh(j) = j*tan(1), tanh(j*x) = j*tan(x)
         | Number n when n.IsNegative -> Function (Tanh, Number -n) |> negate // tanh(-x) = -tanh(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Tanh, multiply (Number -n) (Product ax)) |> negate
         | Function (Asinh, x') -> divide x' (sqrt (add (pow x' two) one)) // tanh(asinh(x)) = x/sqrt(x^2 + 1)
@@ -564,11 +574,11 @@ module Operators =
         | Function (Asech, x') -> multiply (add x' one) (sqrt(divide (subtract one x') (add x' one))) // tanh(asech(x)) = (x + 1)*sqrt((1 - x)/(x + 1))
         | Function (Acoth, x') -> invert x' // tanh(acoth(x)) = 1/x
         | x -> Function (Tanh, x)
-    let csch = function
+    let csch : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity | NegativeInfinity -> zero // csch(oo) = csch(-oo) = oo
         | Zero -> complexInfinity // csch(0) = coo
-        | Constant I -> Function (Csc, one) |> multiply (Constant I) |> negate // csch(j) = -j*csc(1), csch(j*x) = -j*csc(x)
+        | Constant I -> Function (Csc, one) |> multiply I |> negate // csch(j) = -j*csc(1), csch(j*x) = -j*csc(x)
         | Number n when n.IsNegative -> Function (Csch, Number -n) |> negate // csch(-x) = -csch(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Csch, multiply (Number -n) (Product ax)) |> negate
         | Function (Asinh, x') -> invert x' // csch(asinh(x)) = 1/x
@@ -578,7 +588,7 @@ module Operators =
         | Function (Asech, x') -> divide x' (multiply (add x' one) (sqrt (divide (subtract one x') (add x' one)))) // csch(asech(x)) = x/((x + 1)*sqrt((1 - x)/(x + 1)))
         | Function (Acoth, x') -> multiply x' (sqrt (subtract one (invert (pow x' two)))) // csch(acoth(x)) = x*sqrt(1 - 1/x^2)
         | x -> Function (Csch, x)
-    let sech = function
+    let sech : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity | NegativeInfinity -> zero // sech(oo) = sech(-oo) = 0
         | Zero -> one // sech(0) = 1
@@ -592,11 +602,11 @@ module Operators =
         | Function (Asech, x') -> x' // sech(asech(x)) = x
         | Function (Acoth, x') -> sqrt (subtract one (invert (pow x' two))) // sech(acoth(x)) = sqrt(1 - 1/x^2)
         | x -> Function (Sech, x)
-    let coth = function
+    let coth : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity -> one
         | Zero -> complexInfinity
-        | Constant I -> Function (Cot, one) |> multiply (Constant I) |> negate // coth(j*x) = -j*cot(x)
+        | Constant I -> Function (Cot, one) |> multiply I |> negate // coth(j*x) = -j*cot(x)
         | Number n when n.IsNegative -> Function (Coth, Number -n) |> negate // coth(-x) = -coth(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Coth, multiply (Number -n) (Product ax)) |> negate
         | Function (Asinh, x') -> divide (sqrt (add (pow x' two) one)) x' // coth(asinh(x)) = sqrt(x^2 + 1)/x
@@ -607,137 +617,137 @@ module Operators =
         | Function (Acoth, x') -> x' // coth(acoth(x)) = x
         | x -> Function (Coth, x)
 
-    let arcsin = function
+    let arcsin : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | Zero -> zero // asin(0) = 0
-        | One -> divide pi two // asin(1) = pi/2
-        | MinusOne -> divide pi two |> negate // asin(-1) = -pi/2
-        | Constant I -> multiply (Constant I) (Function (Asinh, one)) // asin(j) = j*asinh(1)
+        | One -> divide Pi two // asin(1) = pi/2
+        | MinusOne -> divide Pi two |> negate // asin(-1) = -pi/2
+        | Constant I -> multiply I (Function (Asinh, one)) // asin(j) = j*asinh(1)
         | Number n when n.IsNegative -> Function (Asin, Number -n) |> negate // arcsin(-x) = -arcsin(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Asin, multiply (Number -n) (Product ax)) |> negate
         | x -> Function (Asin, x)
-    let arccos = function
+    let arccos : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
-        | PositiveInfinity -> multiply infinity (Constant I) // acos(oo) = oo*j, acos(-oo) = -oo*j
-        | NegativeInfinity -> multiply negativeInfinity (Constant I)
-        | Zero -> divide pi two // acos(0) = pi/2
+        | PositiveInfinity -> multiply infinity I // acos(oo) = oo*j, acos(-oo) = -oo*j
+        | NegativeInfinity -> multiply negativeInfinity I
+        | Zero -> divide Pi two // acos(0) = pi/2
         | One -> zero // acos(1) = 0
-        | MinusOne -> pi // acos(-1) = pi
+        | MinusOne -> Pi // acos(-1) = pi
         | x -> Function (Acos, x)
-    let arctan = function
+    let arctan : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
-        | PositiveInfinity -> divide pi two // atan(oo) = pi/2, atan(-oo) = -pi/2
+        | PositiveInfinity -> divide Pi two // atan(oo) = pi/2, atan(-oo) = -pi/2
         | Zero -> zero // atan(0) = 0
-        | One -> divide pi four // atan(1) = pi/4
-        | MinusOne -> divide pi four |> negate // atan(-1) = -pi/4
-        | Constant I -> multiply (Constant I) infinity // atan(j) = oo*j
+        | One -> divide Pi four // atan(1) = pi/4
+        | MinusOne -> divide Pi four |> negate // atan(-1) = -pi/4
+        | Constant I -> multiply I infinity // atan(j) = oo*j
         | Number n when n.IsNegative -> Function (Atan, Number -n) |> negate // atan(-x) = -atan(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Atan, multiply (Number -n) (Product ax)) |> negate
         | x -> Function (Atan, x)
-    let arctan2 x y = FunctionN (Atan, [x;y])
-    let arccsc = function
+    let arctan2 (x:Expression) (y:Expression) : Expression = FunctionN (Atan2, [x;y])
+    let arccsc : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity | NegativeInfinity -> zero // acsc(oo) = acsc(-oo) = 0
         | Zero -> complexInfinity // acsc(0) = coo
-        | One -> divide pi two // acsc(1) = pi/2, acsc(-1) = -pi/2
-        | MinusOne -> divide pi two |> negate
-        | Constant I -> multiply (Constant I) (Function (Acsch, one)) |> negate // acsc(j) = -j*acsch(1)
+        | One -> divide Pi two // acsc(1) = pi/2, acsc(-1) = -pi/2
+        | MinusOne -> divide Pi two |> negate
+        | Constant I -> multiply I (Function (Acsch, one)) |> negate // acsc(j) = -j*acsch(1)
         | x -> Function (Acsc, x)
-    let arcsec = function
+    let arcsec : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
-        | PositiveInfinity | NegativeInfinity -> divide pi two // asec(oo) = asec(-oo) = pi/2
+        | PositiveInfinity | NegativeInfinity -> divide Pi two // asec(oo) = asec(-oo) = pi/2
         | Zero -> complexInfinity // asec(0) = coo
         | One -> zero // asec(1) = 0, asec(-1) = pi
-        | MinusOne -> pi
+        | MinusOne -> Pi
         | x -> Function (Asec, x)
-    let arccot = function
+    let arccot : Expression -> Expression = function
         | Undefined -> undefined
         | oo when isInfinity oo -> zero // acot(coo) = acot(oo) = acot(-oo) = 0
-        | Zero -> divide pi two // acot(0) = pi/2
-        | One -> divide pi four // acot(1) = pi/4, acot(-1) = -pi/4
-        | MinusOne -> divide pi four |> negate
-        | Constant I -> multiply (Constant I) negativeInfinity // atan(j) = -oo*j
+        | Zero -> divide Pi two // acot(0) = pi/2
+        | One -> divide Pi four // acot(1) = pi/4, acot(-1) = -pi/4
+        | MinusOne -> divide Pi four |> negate
+        | Constant I -> multiply I negativeInfinity // atan(j) = -oo*j
         | Number n when n.IsNegative -> Function (Acot, Number -n) |> negate // acot(-x) = -acot(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Acot, multiply (Number -n) (Product ax)) |> negate
         | x -> Function (Acot, x)
 
-    let arcsinh = function
+    let arcsinh : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity -> infinity // asinh(oo) = oo, asinh(-oo) = -oo
         | NegativeInfinity -> negativeInfinity
         | Zero -> zero // asinh(0) = 0
-        | Constant I -> divide (multiply pi (Constant I)) two // asinh(j) = pi*j/2, asinh(n*j) = j*asin(n)
+        | Constant I -> PiIHalf // asinh(j) = pi*j/2, asinh(n*j) = j*asin(n)
         | Number n when n.IsNegative -> Function (Asinh, Number -n) |> negate // asinh(-x) = -asinh(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Asinh, multiply (Number -n) (Product ax)) |> negate
         | x -> Function (Asinh, x)
-    let arccosh = function
+    let arccosh : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity | NegativeInfinity -> infinity // acosh(oo) = acosh(-oo) = oo
-        | Zero -> divide (multiply pi (Constant I)) two // acosh(0) = pi*j/2
+        | Zero -> PiIHalf // acosh(0) = pi*j/2
         | One -> zero // acosh(1) = 0
-        | MinusOne -> multiply pi (Constant I) // acosh(-1) = pi*j
+        | MinusOne -> PiI // acosh(-1) = pi*j
         | x -> Function (Acosh, x)
-    let arctanh = function
+    let arctanh : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
-        | PositiveInfinity -> divide  (multiply pi (Constant I)) two |> negate // atanh(oo) = - pi*j/2, atanh(-oo) = pi*j/2
-        | NegativeInfinity -> divide  (multiply pi (Constant I)) two
+        | PositiveInfinity -> PiIHalf |> negate // atanh(oo) = - pi*j/2, atanh(-oo) = pi*j/2
+        | NegativeInfinity -> PiIHalf
         | Zero -> zero // atanh(0) = 0
         | One -> infinity // atanh(1) = oo, atanh(-1) = -oo
         | MinusOne -> negativeInfinity
-        | Constant I -> divide (multiply pi (Constant I)) four // atanh(j) = pi*j/4
+        | Constant I -> divide PiI four // atanh(j) = pi*j/4
         | Number n when n.IsNegative -> Function (Atanh, Number -n) |> negate // atanh(-x) = -atanh(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Atanh, multiply (Number -n) (Product ax)) |> negate
         | x -> Function (Atanh, x)
-    let arccsch = function
+    let arccsch : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity | NegativeInfinity -> zero // acsch(oo) = acsch(-oo) = 0
         | Zero | One | MinusOne -> complexInfinity // acsch(0) = coo
-        | Constant I -> divide (multiply pi (Constant I)) two |> negate // acsch(j) = -pi*j/2
+        | Constant I -> PiIHalf |> negate // acsch(j) = -pi*j/2
         | Number n when n.IsNegative -> Function (Acsch, Number -n) |> negate // acsch(-x) = -acsch(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Acsch, multiply (Number -n) (Product ax)) |> negate
         | x -> Function (Acsch, x)
-    let arcsech = function
+    let arcsech : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
-        | PositiveInfinity | NegativeInfinity -> divide (multiply pi (Constant I)) two // asech(oo) = asech(-oo) = pi*j/2
+        | PositiveInfinity | NegativeInfinity -> PiIHalf // asech(oo) = asech(-oo) = pi*j/2
         | Zero -> infinity // asech(0) = oo
         | One -> zero // asech(1) = 0
-        | MinusOne -> multiply pi (Constant I) // asech(-1) = pi*j
+        | MinusOne -> PiI // asech(-1) = pi*j
         | x -> Function (Asech, x)
-    let arccoth = function
+    let arccoth : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity | NegativeInfinity -> zero // acoth(oo) = acoth(-oo) = 0
-        | Zero -> divide (multiply pi (Constant I)) two // acoth(0) = pi*j/2
+        | Zero -> PiIHalf // acoth(0) = pi*j/2
         | One -> infinity // acoth(1) = oo, acoth(-1) = -oo
         | MinusOne -> negativeInfinity
-        | Constant I -> divide (multiply pi (Constant I)) four |> negate // atanh(j) = -pi*j/4
+        | Constant I -> divide PiI four |> negate // atanh(j) = -pi*j/4
         | Number n when n.IsNegative -> Function (Acoth, Number -n) |> negate // acoth(-x) = -acoth(x)
         | Product ((Number n)::ax) when n.IsNegative -> Function (Acoth, multiply (Number -n) (Product ax)) |> negate
         | x -> Function (Acoth, x)
 
-    let airyai = function
+    let airyai : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity | NegativeInfinity -> zero // Ai(oo) = Ai(-oo) = 0
         //| Zero -> divide (pow three (invert three)) (multiply three (gamma (divide two three)))) // Ai(0) = 3^(1/3)/(3*Gamma(2/3))
         | x -> Function (AiryAi, x)
-    let airyaiprime = function
+    let airyaiprime : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity -> zero // Ai'(oo) = 0
         //| Zero -> pow three (invert three)) |> multiply (gamma (invert three)) |> invert |> negate // Ai'(0) = -1/(3^(1/3)*Gamma(1/3))
         | x -> Function (AiryAiPrime, x)
-    let airybi = function
+    let airybi : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity -> infinity // Bi(oo) = oo
         | NegativeInfinity -> zero // Bi(-oo) = 0
         //| Zero -> pow three (invert six)) |> multiply (gamma (divide two three)) |> invert // Bi(0) = 1/(3^(1/6)*Gamma(2/3))
         | x -> Function (AiryBi, x)
-    let airybiprime = function
+    let airybiprime : Expression -> Expression = function
         | Undefined | ComplexInfinity -> undefined
         | PositiveInfinity -> infinity // Bi'(oo) = oo
         | NegativeInfinity -> zero // Bi'(-oo) = 0
         //| Zero -> divide (pow three (invert six)) (gamma (invert three)) // Bi'(0) = 3^(1/6)/Gamma(1/3)
         | x -> Function (AiryBiPrime, x)
 
-    let rec besselj nu x =
+    let rec besselj (nu:Expression) (x:Expression) : Expression =
         match nu, x with
         | Undefined, _ -> undefined
         | _, Undefined -> undefined
@@ -748,7 +758,7 @@ module Operators =
         | _, PositiveInfinity -> zero // J(nu, oo) = 0
         | _, NegativeInfinity -> zero // J(nu, -oo) = 0
         | _, _ -> FunctionN (BesselJ, [nu; x])
-    let rec bessely nu x =
+    let rec bessely (nu:Expression) (x:Expression) : Expression =
         match nu, x with
         | Undefined, _ -> undefined
         | _, Undefined -> undefined
@@ -759,7 +769,7 @@ module Operators =
         | _, PositiveInfinity -> zero // Y(nu, oo) = 0
         | _, NegativeInfinity -> zero // Y(nu, -oo) = 0
         | _, _ -> FunctionN (BesselY, [nu; x])
-    let rec besseli nu x =
+    let rec besseli (nu:Expression) (x:Expression) : Expression =
         match nu, x with
         | Undefined, _ -> undefined
         | _, Undefined -> undefined
@@ -768,7 +778,7 @@ module Operators =
         | Number n, _  when n.IsNegative -> besseli (Number -n) x // I(-n, x) = I(n, x)
         | Product ((Number n)::ax), _ when n.IsNegative -> besseli (multiply (Number -n) (Product ax)) x
         | _, _ -> FunctionN (BesselI, [nu; x])
-    let rec besselk nu x =
+    let rec besselk (nu:Expression) (x:Expression) : Expression =
         match nu, x with
         | Undefined, _ -> undefined
         | _, Undefined -> undefined
@@ -777,7 +787,7 @@ module Operators =
         | Number n, _  when n.IsNegative -> besselk (Number -n) x // K(-n, x) = K(n, x)
         | Product ((Number n)::ax), _ when n.IsNegative -> besselk (multiply (Number -n) (Product ax)) x
         | _, _ -> FunctionN (BesselK, [nu; x])
-    let rec besseliratio nu x =
+    let rec besseliratio (nu:Expression) (x:Expression) : Expression =
         match nu, x with
         | Undefined, _ -> undefined
         | _, Undefined -> undefined
@@ -785,7 +795,7 @@ module Operators =
         | Number n, _ when n.Numerator = -1I && n.Denominator = 2I -> tanh x // I(1/2, x) / I(-1/2, x) = tanh(x)
         | Number n, _ when n.Numerator = 1I && n.Denominator = 2I -> subtract (coth x) (invert x) // I(3/2, x) / I(1/2, x) = coth(x) - 1/x
         | _, _ -> FunctionN (BesselIRatio, [nu; x])
-    let rec besselkratio nu x =
+    let rec besselkratio (nu:Expression) (x:Expression) : Expression =
         match nu, x with
         | Undefined, _ -> undefined
         | _, Undefined -> undefined
@@ -794,7 +804,7 @@ module Operators =
         | Number n, _ when n.Numerator = 1I && n.Denominator = 2I -> add (invert x) one  // K(3/2, x) / K(1/2, x) = 1/x + 1
         | _, Zero -> undefined
         | _, _ -> FunctionN (BesselKRatio, [nu; x])
-    let rec hankelh1 nu x =
+    let rec hankelh1 (nu:Expression) (x:Expression) : Expression =
         match nu, x with
         | Undefined, _ -> undefined
         | _, Undefined -> undefined
@@ -802,7 +812,7 @@ module Operators =
         | Number n, _  when n.IsNegative -> (pow minusOne (Number -n)) |> multiply (hankelh1 (Number -n) x) // H1(-n, x) = pow(-1, n) * H1(n, x)
         | Product ((Number n)::ax), _ when n.IsNegative -> (pow minusOne (multiply (Number -n) (Product ax))) |> multiply (hankelh1 (multiply (Number -n) (Product ax)) x)
         | _, _ -> FunctionN (HankelH1, [nu; x])
-    let rec hankelh2 nu x =
+    let rec hankelh2 (nu:Expression) (x:Expression) : Expression =
         match nu, x with
         | Undefined, _ -> undefined
         | _, Undefined -> undefined
@@ -811,12 +821,12 @@ module Operators =
         | Product ((Number n)::ax), _ when n.IsNegative -> (pow minusOne (multiply (Number -n) (Product ax))) |> multiply (hankelh2 (multiply (Number -n) (Product ax)) x)
         | _, _ -> FunctionN (HankelH2, [nu; x])
 
-    let apply f x =
+    let apply (f: Function) (x:Expression) : Expression =
         match f with
         | Abs -> abs x
         | Exp -> exp x
         | Ln -> ln x
-        | Log -> log10 x
+        | Lg -> lg x
         | Sin -> sin x
         | Cos -> cos x
         | Tan -> tan x
@@ -845,11 +855,10 @@ module Operators =
         | AiryAiPrime -> airyaiprime x
         | AiryBi -> airybi x
         | AiryBiPrime -> airybiprime x
-        | _ -> failwith "not supported"
 
-    let applyN (f: Function) (xs: Expression list) =
+    let applyN (f: FunctionN) (xs: Expression list) : Expression =
         match f, xs with
-        | Atan, [x;y] -> arctan2 x y
+        | Atan2, [x;y] -> arctan2 x y
         | Log, [b; x] -> log b x
         | BesselJ, [nu; x] -> besselj nu x
         | BesselY, [nu; x] -> bessely nu x
@@ -868,27 +877,32 @@ type Expression with
     static member One = Operators.one
     static member Two = Operators.two
     static member MinusOne = Operators.minusOne
-    static member FromInt32 (x:int) = Operators.fromInt32 x
-    static member FromInt64 (x:int64) = Operators.fromInt64 x
-    static member FromInteger (x:BigInteger) = Operators.fromInteger x
-    static member FromIntegerFraction (n:BigInteger, d:BigInteger) = Operators.fromIntegerFraction n d
-    static member FromRational (x:BigRational) = Operators.fromRational x
-    static member Symbol (name:string) = Operators.symbol name
-    static member Real (floatingPoint:float) = Operators.fromReal floatingPoint
-    static member Real32 (floatingPoint:float32) = Operators.fromReal32 floatingPoint
+
+    static member Int32 (x:int) = Operators.fromInt32 x
+    static member Int64 (x:int64) = Operators.fromInt64 x
+    static member Integer (x:BigInteger) = Operators.fromInteger x
+    static member IntegerFraction (n:BigInteger, d:BigInteger) = Operators.fromIntegerFraction n d
+    static member Rational (x:BigRational) = Operators.fromRational x
+
+    static member Decimal (x:decimal) = Operators.fromDecimal x
+
+    static member Real (floatingPoint:float) = Operators.fromDouble floatingPoint
+    static member Real32 (floatingPoint:float32) = Operators.fromSingle floatingPoint
     static member Complex (floatingPoint:complex) = Operators.fromComplex floatingPoint
     static member Complex32 (floatingPoint:complex32) = Operators.fromComplex32 floatingPoint
 
-    static member I = Constant I
-    static member E = Constant E
-    static member Pi = Operators.pi
+    static member Symbol (name:string) = Operators.symbol name
 
-    static member ( ~+ ) (x:Expression) = Operators.plus x
-    static member ( ~- ) (x:Expression) = Operators.negate x
-    static member ( + ) ((x:Expression), (y:Expression)) = Operators.add x y
-    static member ( - ) ((x:Expression), (y:Expression)) = Operators.subtract x y
-    static member ( * ) ((x:Expression), (y:Expression)) = Operators.multiply x y
-    static member ( / ) ((x:Expression), (y:Expression)) = Operators.divide x y
+    static member I = Operators.I
+    static member E = Operators.E
+    static member Pi = Operators.Pi
+
+    static member ( ~+ ) (x:Expression) : Expression = Operators.plus x
+    static member ( ~- ) (x:Expression) : Expression = Operators.negate x
+    static member ( + ) ((x:Expression), (y:Expression)) : Expression = Operators.add x y
+    static member ( - ) ((x:Expression), (y:Expression)) : Expression = Operators.subtract x y
+    static member ( * ) ((x:Expression), (y:Expression)) : Expression = Operators.multiply x y
+    static member ( / ) ((x:Expression), (y:Expression)) : Expression = Operators.divide x y
 
     static member Pow (x, y) = Operators.pow x y
     static member Invert (x) = Operators.invert x
@@ -900,7 +914,7 @@ type Expression with
 
     static member Exp (x) = Operators.exp x
     static member Ln (x) = Operators.ln x
-    static member Log(x) = Operators.log10 x
+    static member Log(x) = Operators.lg x
     static member Log (basis, x) = Operators.log basis x
 
     static member Sin (x) = Operators.sin x
@@ -950,65 +964,81 @@ type Expression with
     static member ApplyN (f, xs) = Operators.applyN f xs
 
     // Simpler usage - numbers
-    static member ( + ) (x, (y:int)) = x + (Operators.number y)
-    static member ( + ) ((x:int), y) = (Operators.number x) + y
-    static member ( - ) (x, (y:int)) = x - (Operators.number y)
-    static member ( - ) ((x:int), y) = (Operators.number x) - y
-    static member ( * ) (x, (y:int)) = x * (Operators.number y)
-    static member ( * ) ((x:int), y) = (Operators.number x) * y
-    static member ( / ) (x, (y:int)) = x / (Operators.number y)
-    static member ( / ) ((x:int), y) = (Operators.number x) / y
-    static member Pow (x, (y:int)) = Operators.pow x (Operators.number y)
+    static member ( + ) (x:Expression, y:int) : Expression = Operators.add x (Operators.fromInt32 y)
+    static member ( + ) (x:int, y:Expression) : Expression = Operators.add (Operators.fromInt32 x) y
+    static member ( - ) (x:Expression, y:int) : Expression = Operators.subtract x (Operators.fromInt32 y)
+    static member ( - ) (x:int, y:Expression) : Expression = Operators.subtract (Operators.fromInt32 x) y
+    static member ( * ) (x:Expression, y:int) : Expression = Operators.multiply x (Operators.fromInt32 y)
+    static member ( * ) (x:int, y:Expression) : Expression = Operators.multiply (Operators.fromInt32 x) y
+    static member ( / ) (x:Expression, y:int) : Expression = Operators.divide x (Operators.fromInt32 y)
+    static member ( / ) (x:int, y:Expression) : Expression = Operators.divide (Operators.fromInt32 x) y
+    static member Pow (x:Expression, y:int) : Expression = Operators.pow x (Operators.fromInt32 y)
 
     // Simpler usage - approximations
-    static member ( + ) (x, (y:float)) = x + (Operators.fromReal y)
-    static member ( + ) ((x:float), y) = (Operators.fromReal x) + y
-    static member ( - ) (x, (y:float)) = x - (Operators.fromReal y)
-    static member ( - ) ((x:float), y) = (Operators.fromReal x) - y
-    static member ( * ) (x, (y:float)) = x * (Operators.fromReal y)
-    static member ( * ) ((x:float), y) = (Operators.fromReal x) * y
-    static member ( / ) (x, (y:float)) = x / (Operators.fromReal y)
-    static member ( / ) ((x:float), y) = (Operators.fromReal x) / y
-    static member ( + ) (x, (y:float32)) = x + (Operators.fromReal32 y)
-    static member ( + ) ((x:float32), y) = (Operators.fromReal32 x) + y
-    static member ( - ) (x, (y:float32)) = x - (Operators.fromReal32 y)
-    static member ( - ) ((x:float32), y) = (Operators.fromReal32 x) - y
-    static member ( * ) (x, (y:float32)) = x * (Operators.fromReal32 y)
-    static member ( * ) ((x:float32), y) = (Operators.fromReal32 x) * y
-    static member ( / ) (x, (y:float32)) = x / (Operators.fromReal32 y)
-    static member ( / ) ((x:float32), y) = (Operators.fromReal32 x) / y
-    static member ( + ) (x, (y:complex)) = x + (Operators.fromComplex y)
-    static member ( + ) ((x:complex), y) = (Operators.fromComplex x) + y
-    static member ( - ) (x, (y:complex)) = x - (Operators.fromComplex y)
-    static member ( - ) ((x:complex), y) = (Operators.fromComplex x) - y
-    static member ( * ) (x, (y:complex)) = x * (Operators.fromComplex y)
-    static member ( * ) ((x:complex), y) = (Operators.fromComplex x) * y
-    static member ( / ) (x, (y:complex)) = x / (Operators.fromComplex y)
-    static member ( / ) ((x:complex), y) = (Operators.fromComplex x) / y
-    static member ( + ) (x, (y:complex32)) = x + (Operators.fromComplex32 y)
-    static member ( + ) ((x:complex32), y) = (Operators.fromComplex32 x) + y
-    static member ( - ) (x, (y:complex32)) = x - (Operators.fromComplex32 y)
-    static member ( - ) ((x:complex32), y) = (Operators.fromComplex32 x) - y
-    static member ( * ) (x, (y:complex32)) = x * (Operators.fromComplex32 y)
-    static member ( * ) ((x:complex32), y) = (Operators.fromComplex32 x) * y
-    static member ( / ) (x, (y:complex32)) = x / (Operators.fromComplex32 y)
-    static member ( / ) ((x:complex32), y) = (Operators.fromComplex32 x) / y
+    static member ( + ) (x:Expression, y:float) : Expression = Operators.add x (Operators.fromDouble y)
+    static member ( + ) (x:float, y:Expression) : Expression = Operators.add (Operators.fromDouble x) y
+    static member ( - ) (x:Expression, y:float) : Expression = Operators.subtract x (Operators.fromDouble y)
+    static member ( - ) (x:float, y:Expression) : Expression = Operators.subtract (Operators.fromDouble x) y
+    static member ( * ) (x:Expression, y:float) : Expression = Operators.multiply x (Operators.fromDouble y)
+    static member ( * ) (x:float, y:Expression) : Expression = Operators.multiply (Operators.fromDouble x) y
+    static member ( / ) (x:Expression, y:float) : Expression = Operators.divide x (Operators.fromDouble y)
+    static member ( / ) (x:float, y:Expression) : Expression = Operators.divide (Operators.fromDouble x) y
+
+    static member ( + ) (x:Expression, y:float32) : Expression = Operators.add x (Operators.fromSingle y)
+    static member ( + ) (x:float32, y:Expression) : Expression = Operators.add (Operators.fromSingle x) y
+    static member ( - ) (x:Expression, y:float32) : Expression = Operators.subtract x (Operators.fromSingle y)
+    static member ( - ) (x:float32, y:Expression) : Expression = Operators.subtract (Operators.fromSingle x) y
+    static member ( * ) (x:Expression, y:float32) : Expression = Operators.multiply x (Operators.fromSingle y)
+    static member ( * ) (x:float32, y:Expression) : Expression = Operators.multiply (Operators.fromSingle x) y
+    static member ( / ) (x:Expression, y:float32) : Expression = Operators.divide x (Operators.fromSingle y)
+    static member ( / ) (x:float32, y:Expression) : Expression = Operators.divide (Operators.fromSingle x) y
+
+    static member ( + ) (x:Expression, y:complex) : Expression = Operators.add x (Operators.fromComplex y)
+    static member ( + ) (x:complex, y:Expression) : Expression = Operators.add (Operators.fromComplex x) y
+    static member ( - ) (x:Expression, y:complex) : Expression = Operators.subtract x (Operators.fromComplex y)
+    static member ( - ) (x:complex, y:Expression) : Expression = Operators.subtract (Operators.fromComplex x) y
+    static member ( * ) (x:Expression, y:complex) : Expression = Operators.multiply x (Operators.fromComplex y)
+    static member ( * ) (x:complex, y:Expression) : Expression = Operators.multiply (Operators.fromComplex x) y
+    static member ( / ) (x:Expression, y:complex) : Expression = Operators.divide x (Operators.fromComplex y)
+    static member ( / ) (x:complex, y:Expression) : Expression = Operators.divide (Operators.fromComplex x) y
+
+    static member ( + ) (x:Expression, y:complex32) : Expression = Operators.add x (Operators.fromComplex32 y)
+    static member ( + ) (x:complex32, y:Expression) : Expression = Operators.add (Operators.fromComplex32 x) y
+    static member ( - ) (x:Expression, y:complex32) : Expression = Operators.subtract x (Operators.fromComplex32 y)
+    static member ( - ) (x:complex32, y:Expression) : Expression = Operators.subtract (Operators.fromComplex32 x) y
+    static member ( * ) (x:Expression, y:complex32) : Expression = Operators.multiply x (Operators.fromComplex32 y)
+    static member ( * ) (x:complex32, y:Expression) : Expression = Operators.multiply (Operators.fromComplex32 x) y
+    static member ( / ) (x:Expression, y:complex32) : Expression = Operators.divide x (Operators.fromComplex32 y)
+    static member ( / ) (x:complex32, y:Expression) : Expression = Operators.divide (Operators.fromComplex32 x) y
+
+    static member ( + ) (x:Expression, y:decimal) : Expression = Operators.add x (Operators.fromDecimal y)
+    static member ( + ) (x:decimal, y:Expression) : Expression = Operators.add (Operators.fromDecimal x) y
+    static member ( - ) (x:Expression, y:decimal) : Expression = Operators.subtract x (Operators.fromDecimal y)
+    static member ( - ) (x:decimal, y:Expression) : Expression = Operators.subtract (Operators.fromDecimal x) y
+    static member ( * ) (x:Expression, y:decimal) : Expression = Operators.multiply x (Operators.fromDecimal y)
+    static member ( * ) (x:decimal, y:Expression) : Expression = Operators.multiply (Operators.fromDecimal x) y
+    static member ( / ) (x:Expression, y:decimal) : Expression = Operators.divide x (Operators.fromDecimal y)
+    static member ( / ) (x:decimal, y:Expression) : Expression = Operators.divide (Operators.fromDecimal x) y
 
     // Simpler usage in C#
-    static member op_Implicit (x:int) = Operators.fromInt32(x)
-    static member op_Implicit (x:int64) = Operators.fromInt64(x)
-    static member op_Implicit (x:BigInteger) = Operators.fromInteger(x)
-    static member op_Implicit (x:BigRational) = Operators.fromRational(x)
-    static member op_Implicit (x:float) = Operators.fromReal x
-    static member op_Implicit (x:float32) = Operators.fromReal32 x
-    static member op_Implicit (x:complex) = Operators.fromComplex x
-    static member op_Implicit (x:complex32) = Operators.fromComplex32 x
+    static member op_Implicit (x:int) : Expression = Operators.fromInt32 x
+    static member op_Implicit (x:int64) : Expression = Operators.fromInt64 x
+    static member op_Implicit (x:BigInteger) : Expression = Operators.fromInteger x
+    static member op_Implicit (x:BigRational) : Expression = Operators.fromRational x
+    static member op_Implicit (x:float) : Expression = Operators.fromDouble x
+    static member op_Implicit (x:float32) : Expression = Operators.fromSingle x
+    static member op_Implicit (x:complex) : Expression = Operators.fromComplex x
+    static member op_Implicit (x:complex32) : Expression = Operators.fromComplex32 x
+    static member op_Implicit (x:decimal) : Expression = Operators.fromDecimal x
 
 
 [<RequireQualifiedAccess>]
 module NumericLiteralQ =
-    let FromZero () = Expression.Zero
-    let FromOne () = Expression.One
-    let FromInt32 (x:int) = Expression.FromInt32 x
-    let FromInt64 (x:int64) = Expression.FromInt64 x
-    let FromString str = Expression.FromRational (BigRational.Parse str)
+
+    open Operators
+
+    let FromZero () : Expression = zero
+    let FromOne () : Expression = one
+    let FromInt32 (x:int) : Expression = fromInt32 x
+    let FromInt64 (x:int64) : Expression = fromInt64 x
+    let FromString (str:string) : Expression = fromRational (BigRational.Parse str)

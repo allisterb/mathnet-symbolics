@@ -45,9 +45,9 @@ module private MathMLParser =
         | LeafNamed "cn" body -> Number (BigRational.Parse body)
         | CSymbol (dict, symbol) ->
             match dict, symbol with
-            | "nums1", "pi" -> Expression.Pi
-            | "nums1", "e" -> Expression.E
-            | "nums1", "i" -> Expression.I
+            | "nums1", "pi" -> Pi
+            | "nums1", "e" -> E
+            | "nums1", "i" -> I
             | "nums1", "infinity" -> PositiveInfinity
             | "nums1", "NaN" -> Undefined
             | _ -> Undefined
@@ -114,6 +114,8 @@ module private MathMLFormatter =
         | VisualExpression.ComplexInfinity -> csymbol "nums1" "infinity"
         | VisualExpression.Undefined -> csymbol "nums1" "NaN"
         | VisualExpression.ComplexI -> csymbol "nums1" "i"
+        | VisualExpression.RealE -> csymbol "nums1" "e"
+        | VisualExpression.RealPi -> csymbol "nums1" "pi"
         | VisualExpression.PositiveInteger i -> cn i
         | VisualExpression.PositiveFloatingPoint fp -> cn fp
         | VisualExpression.Parenthesis x -> formatContentStrict x
@@ -137,7 +139,6 @@ module private MathMLFormatter =
         | VisualExpression.Root (r, p) ->
             apply "arith1" "root" [ formatContentStrict r; cn p ]
         | VisualExpression.Function (fn, power, x) -> failwith "not implemented"
-        | VisualExpression.FunctionN (fn, power, xs) -> failwith "not implemented"
 
 
     /// Format a semantics xml element containing both strict content representation and annotations.
