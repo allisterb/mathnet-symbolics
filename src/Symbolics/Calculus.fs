@@ -66,6 +66,9 @@ module Calculus =
         | FunctionN (_) -> failwith "not supported"
         | Product [] -> failwith "invalid expression"
 
+        | Function(Factorial, x) -> failwith "not supported"
+        | Function(Prob, x) -> failwith "not supported"
+
     /// Differentiate expression to symbol and substitute symbol with value
     [<CompiledName("DifferentiateAt")>]
     let differentiateAt symbol value expression =

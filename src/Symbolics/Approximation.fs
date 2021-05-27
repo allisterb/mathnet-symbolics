@@ -220,6 +220,14 @@ module Approximation =
         | Complex a, Real b -> failwith "not supported"
         | Complex a, Complex b -> failwith "not supported"
 
+    let factorial = function
+        | Real a -> Real (SpecialFunctions.Factorial((int) a))
+        | _ -> failwith "not supported"
+
+    let prob = function
+        | Real a -> Real a
+        | Complex a -> Complex a
+
     let apply f a =
         match f with
         | Abs -> abs a
@@ -254,6 +262,10 @@ module Approximation =
         | AiryAiPrime -> airyaiprime a
         | AiryBi -> airybi a
         | AiryBiPrime -> airybiprime a
+
+        | Factorial -> factorial a
+        | Prob -> prob a
+
 
     let applyN f xs =
         match f, xs with

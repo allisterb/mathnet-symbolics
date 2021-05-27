@@ -24,6 +24,8 @@ module Approximate =
             | Constant.E -> fromDouble Constants.E
             | Constant.Pi -> fromDouble Constants.Pi
             | Constant.I -> fromComplex Complex.onei
+            | Constant.True -> fromInt32 1
+            | Constant.False -> fromInt32 0
         | Sum sx -> sum (List.map (approximateSubstitute symbols) sx)
         | Product px -> product (List.map (approximateSubstitute symbols) px)
         | Power (a,b) -> pow (approximateSubstitute symbols a) (approximateSubstitute symbols b)

@@ -18,6 +18,9 @@ type Function =
     | AiryBi // Airy function Bi
     | AiryBiPrime // Derivative of Airy function Bi
 
+    | Factorial
+    | Prob
+
 type FunctionN =
     | Log
     | Atan2
@@ -36,3 +39,5 @@ type Constant =
     | E
     | Pi
     | I
+    | True
+    | False

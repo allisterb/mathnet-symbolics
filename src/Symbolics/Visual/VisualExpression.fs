@@ -137,6 +137,10 @@ module VisualExpression =
                 VisualExpression.RealE
             | Constant I ->
                 VisualExpression.ComplexI
+            | Constant True ->
+                VisualExpression.Symbol "true"
+            | Constant False ->
+                VisualExpression.Symbol "false"
             | ComplexInfinity ->
                 VisualExpression.ComplexInfinity
             | PositiveInfinity ->

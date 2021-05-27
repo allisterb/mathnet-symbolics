@@ -821,6 +821,15 @@ module Operators =
         | Product ((Number n)::ax), _ when n.IsNegative -> (pow minusOne (multiply (Number -n) (Product ax))) |> multiply (hankelh2 (multiply (Number -n) (Product ax)) x)
         | _, _ -> FunctionN (HankelH2, [nu; x])
 
+    let rec factorial(x:Expression) : Expression =
+        match x with
+        | Zero -> one
+        | One -> one
+        | Number _ -> multiply x  (factorial(subtract x one))
+        | Approximation (Real r) ->
+            let z = BigInteger(System.Convert.ToDecimal(SpecialFunctions.Factorial((int) r))) 
+            Expression.Number(BigRational.FromBigInt(z))
+        | _ -> Function(Factorial, x)
     let apply (f: Function) (x:Expression) : Expression =
         match f with
         | Abs -> abs x
@@ -855,6 +864,9 @@ module Operators =
         | AiryAiPrime -> airyaiprime x
         | AiryBi -> airybi x
         | AiryBiPrime -> airybiprime x
+
+        | Factorial -> factorial x
+        | Prob -> x
 
     let applyN (f: FunctionN) (xs: Expression list) : Expression =
         match f, xs with
@@ -962,6 +974,9 @@ type Expression with
 
     static member Apply (f, x) = Operators.apply f x
     static member ApplyN (f, xs) = Operators.applyN f xs
+
+    static member Factorial (x) = Operators.factorial x
+    static member Prob (x) = x
 
     // Simpler usage - numbers
     static member ( + ) (x:Expression, y:int) : Expression = Operators.add x (Operators.fromInt32 y)

@@ -92,7 +92,11 @@ module Linq =
                     | Ln   -> Some (mathCall1 "Log")
                     | Lg  -> Some (mathCall1 "Log10")
                     | Exp  -> Some (mathCall1 "Exp")
+
+                    // TODO
                     | Abs  -> Some abs
+                    | Prob -> Some abs
+                    | Factorial -> Some abs
                 let f = convertFunc func
                 let e = convertExpr par
                 Option.map2 id f e

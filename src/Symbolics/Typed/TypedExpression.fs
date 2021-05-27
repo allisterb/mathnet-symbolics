@@ -45,6 +45,8 @@ module TypedExpression =
             | Argument s -> TypedExpression.Identifier (symbols |> Map.find s, s)
             | Constant ((E | Pi) as c) -> TypedExpression.Constant (ValueType.Real, c)
             | Constant I -> TypedExpression.Constant (ValueType.Complex, I)
+            | Constant True -> TypedExpression.Constant (ValueType.Rational, True)
+            | Constant False -> TypedExpression.Constant (ValueType.Rational, False)
             | ComplexInfinity -> TypedExpression.ComplexInfinity ValueType.Complex
             | PositiveInfinity -> TypedExpression.ComplexInfinity ValueType.Real
             | NegativeInfinity -> TypedExpression.ComplexInfinity ValueType.Real
@@ -93,5 +95,12 @@ module TypedExpression =
                     | _ -> ValueType.Undefined
                 TypedExpression.FunctionN (t, (f, [cnu; cz]))
             | FunctionN _ -> failwith "not supported"
+
+            | Function (Factorial, x) ->
+                TypedExpression.Function (ValueType.Real, (Factorial, convert x))
+
+            | Function ((Prob) as f, x) ->
+                let cx = convert x
+                TypedExpression.Function (mergeType (enrichedType cx) ValueType.Real, (f, cx))
 
         convert expr

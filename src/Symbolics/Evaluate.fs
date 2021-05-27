@@ -238,6 +238,8 @@ module Evaluate =
         | Constant E -> Real (Constants.E)
         | Constant Pi -> Real (Constants.Pi)
         | Constant I -> Complex (Complex.onei)
+        | Constant True -> Real 1.
+        | Constant False -> Real 0.
         | Approximation (Approximation.Real fp) -> Real fp
         | Approximation (Approximation.Complex fp) -> Complex fp
         | Identifier (Symbol s) ->
