@@ -1,7 +1,9 @@
 ﻿namespace MathNet.Symbolics
 
 open System
+open System.Numerics
 open MathNet.Numerics
+open MathNet.Numerics.LinearAlgebra.Double
 
 [<RequireQualifiedAccess>]
 module internal Primitive =
@@ -29,8 +31,7 @@ type Approximation =
         match x with
         | Real x -> complex x 0.0
         | Complex x -> x
-
-
+        
 [<RequireQualifiedAccess>]
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Approximation =
@@ -45,19 +46,23 @@ module Approximation =
     let negate = function
         | Real a -> Real (-a)
         | Complex a -> Complex (-a)
+
     let sum = function
         | Real a, Real b -> Real (a+b)
         | Complex a, Complex b -> Complex (a+b)
         | Complex a, Real b | Real b, Complex a -> Complex (a + complex b 0.0)
+
     let product = function
         | Real a, Real b -> Real (a*b)
         | Complex a, Complex b -> Complex (a*b)
         | Complex a, Real b | Real b, Complex a -> Complex (a * complex b 0.0)
+    
     let pow = function
         | Real a, Real b -> Real (a**b)
         | Complex a, Complex b -> Complex (Complex.pow b a)
         | Real a, Complex b -> Complex (Complex.pow b (complex a 0.0))
         | Complex a, Real b -> Complex (Complex.pow (complex b 0.0) a)
+
     let invert = function
         | Real a -> Real (1.0/a)
         | Complex a -> Complex (Complex.one / a)
@@ -65,12 +70,15 @@ module Approximation =
     let abs = function
         | Real a -> Real (Math.Abs a)
         | Complex a -> Real (Complex.magnitude a)
+
     let ln = function
         | Real a -> Real (Math.Log a)
         | Complex a -> Complex (Complex.ln a)
-    let lg = function
+
+    let lg = function        
         | Real a -> Real (Math.Log10 a)
         | Complex a -> Complex (Complex.log10 a)
+
     let log b x =
         match b, x with
         | Real v, Real w -> Real (Math.Log (v, w))
@@ -224,10 +232,7 @@ module Approximation =
         | Real a -> Real (SpecialFunctions.Factorial((int) a))
         | _ -> failwith "not supported"
 
-    let prob = function
-        | Real a -> Real a
-        | Complex a -> Complex a
-
+    
     let apply f a =
         match f with
         | Abs -> abs a
@@ -264,9 +269,7 @@ module Approximation =
         | AiryBiPrime -> airybiprime a
 
         | Factorial -> factorial a
-        | Prob -> prob a
-
-
+     
     let applyN f xs =
         match f, xs with
         | Atan2, [x; y] -> atan2 x y

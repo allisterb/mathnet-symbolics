@@ -830,6 +830,7 @@ module Operators =
             let z = BigInteger(System.Convert.ToDecimal(SpecialFunctions.Factorial((int) r))) 
             Expression.Number(BigRational.FromBigInt(z))
         | _ -> Function(Factorial, x)
+
     let apply (f: Function) (x:Expression) : Expression =
         match f with
         | Abs -> abs x
@@ -866,8 +867,8 @@ module Operators =
         | AiryBiPrime -> airybiprime x
 
         | Factorial -> factorial x
-        | Prob -> x
-
+        
+    
     let applyN (f: FunctionN) (xs: Expression list) : Expression =
         match f, xs with
         | Atan2, [x;y] -> arctan2 x y
@@ -880,6 +881,7 @@ module Operators =
         | BesselKRatio, [nu; x] -> besselkratio nu x
         | HankelH1, [nu; x] -> hankelh1 nu x
         | HankelH2, [nu; x] -> hankelh2 nu x
+        
         | _ -> failwith "not supported"
 
 
@@ -976,7 +978,7 @@ type Expression with
     static member ApplyN (f, xs) = Operators.applyN f xs
 
     static member Factorial (x) = Operators.factorial x
-    static member Prob (x) = x
+    
 
     // Simpler usage - numbers
     static member ( + ) (x:Expression, y:int) : Expression = Operators.add x (Operators.fromInt32 y)

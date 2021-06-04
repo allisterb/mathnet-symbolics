@@ -19,8 +19,7 @@ type Function =
     | AiryBiPrime // Derivative of Airy function Bi
 
     | Factorial
-    | Prob
-
+    
 type FunctionN =
     | Log
     | Atan2
@@ -34,6 +33,7 @@ type FunctionN =
                        // BesselKRatio(n, x) is defined as BesselKRatio(n + 1, x) / BesselKRatio(n, x).
     | HankelH1  // Hankel function of the first kind
     | HankelH2  // Hankel function of the second kind
+
 
 type Constant =
     | E

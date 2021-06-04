@@ -99,8 +99,4 @@ module TypedExpression =
             | Function (Factorial, x) ->
                 TypedExpression.Function (ValueType.Real, (Factorial, convert x))
 
-            | Function ((Prob) as f, x) ->
-                let cx = convert x
-                TypedExpression.Function (mergeType (enrichedType cx) ValueType.Real, (f, cx))
-
         convert expr

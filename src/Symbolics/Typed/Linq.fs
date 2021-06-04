@@ -95,7 +95,6 @@ module Linq =
 
                     // TODO
                     | Abs  -> Some abs
-                    | Prob -> Some abs
                     | Factorial -> Some abs
                 let f = convertFunc func
                 let e = convertExpr par
