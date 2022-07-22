@@ -153,6 +153,9 @@ module private InfixFormatter =
             xs |> List.iter (function
                 | VisualExpression.Negative x -> write " - "; format write x
                 | x -> write " + "; format write x)
+        | VisualExpression.Product ((VisualExpression.Parenthesis(VisualExpression.Negative(VisualExpression.PositiveFloatingPoint 1.0)) | VisualExpression.Negative(VisualExpression.PositiveFloatingPoint 1.0))::r::[]) ->
+            write "-"
+            format write r
         | VisualExpression.Product (x::xs) ->
             format write x
             xs |> List.iter (fun x -> write "*"; format write x)
