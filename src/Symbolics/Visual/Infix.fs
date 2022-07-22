@@ -241,6 +241,13 @@ module Infix =
     let parse (infix: string) =
         parseVisual infix |> Result.map VisualExpression.toExpression
 
+    [<CompiledName("ParseList")>]
+    let parseList (infix: string) =
+        let exprs = infix.TrimStart('[').TrimEnd(']').Split(',')
+        let r  = exprs |> Array.map(fun i -> parseVisual i |> Result.map VisualExpression.toExpression) |> Array.toList
+        let s, errors = r |> List.choose(function | Ok k -> Some k | _ -> None), r |> List.choose(function |Error e -> Some e | _ -> None)
+        if List.isEmpty errors then Ok(s) else Error(errors.[0])
+
     [<CompiledName("TryParse")>]
     let tryParse (infix: string) =
         match parse infix with
