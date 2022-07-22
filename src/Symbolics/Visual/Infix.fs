@@ -246,7 +246,7 @@ module Infix =
         let exprs = infix.TrimStart('[').TrimEnd(']').Split(',')
         let r  = exprs |> Array.map(fun i -> parseVisual i |> Result.map VisualExpression.toExpression) |> Array.toList
         let s, errors = r |> List.choose(function | Ok k -> Some k | _ -> None), r |> List.choose(function |Error e -> Some e | _ -> None)
-        if List.isEmpty errors then Ok(s) else Error(errors.[0])
+        if List.isEmpty errors then Ok s else Error(errors |> List.reduce (fun l r -> l + "\n" + r))
 
     [<CompiledName("TryParse")>]
     let tryParse (infix: string) =
