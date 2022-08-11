@@ -246,7 +246,7 @@ module Infix =
 
     [<CompiledName("ParseList")>]
     let parseList (infix: string) =
-        let exprs = infix.TrimStart('[').TrimEnd(']').Split(',')
+        let exprs = infix.TrimStart('[').TrimEnd(']').Split(',') |> Array.map (fun e -> let s = e.Split('=') in if s.Length = 1 then s.[0] else s.[1])
         let r  = exprs |> Array.map(fun i -> parseVisual i |> Result.map VisualExpression.toExpression) |> Array.toList
         let s, errors = r |> List.choose(function | Ok k -> Some k | _ -> None), r |> List.choose(function |Error e -> Some e | _ -> None)
         if List.isEmpty errors then Ok s else Error(errors |> List.reduce (fun l r -> l + "\n" + r))
