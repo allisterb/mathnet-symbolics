@@ -72,6 +72,12 @@ module ExpressionPatterns =
         | NegativeInfinity -> Some Negative
         | _ -> None
 
+    let (|NegativeExpr|_|):Expression->Expression option = function
+           | Number n when n.IsNegative -> Some (Expression.Number(-n))
+           | Approximation x when Approximation.isNegative x -> Some (Expression.Approximation(Approximation.negate x))
+           | NegativeInfinity -> Some NegativeInfinity
+           | _ -> None
+
     let (|Positive|_|) = function
         | Number n when n.IsPositive -> Some Positive
         | Constant E | Constant Pi -> Some Positive
