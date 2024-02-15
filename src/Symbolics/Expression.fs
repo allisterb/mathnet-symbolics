@@ -837,6 +837,8 @@ module Operators =
             Expression.Number(BigRational.FromBigInt(z))
         | _ -> Function(Factorial, x)
 
+    let min (x:Expression) (y:Expression) : Expression = FunctionN (Min, [x; y])
+              
     let apply (f: Function) (x:Expression) : Expression =
         match f with
         | Abs -> abs x
@@ -887,7 +889,9 @@ module Operators =
         | BesselKRatio, [nu; x] -> besselkratio nu x
         | HankelH1, [nu; x] -> hankelh1 nu x
         | HankelH2, [nu; x] -> hankelh2 nu x
-        
+
+        | Min, [x;y] -> min x y
+
         | _ -> failwith "not supported"
 
 
@@ -984,7 +988,7 @@ type Expression with
     static member ApplyN (f, xs) = Operators.applyN f xs
 
     static member Factorial (x) = Operators.factorial x
-    
+    static member Min (x, y) = Operators.min x y
 
     // Simpler usage - numbers
     static member ( + ) (x:Expression, y:int) : Expression = Operators.add x (Operators.fromInt32 y)

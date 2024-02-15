@@ -118,7 +118,7 @@ module Polynomial =
             n, denormalizePowers xs
         let intersect ((n1:BigInteger),x1) ((n2:BigInteger),x2) =
             let n' = Euclid.GreatestCommonDivisor (n1, n2)
-            let x' = x1 |> List.choose (fun (r1, p1) -> x2 |> List.tryPick (fun (r2,p2) -> if r2 = r1 then Some (r1, min p1 p2) else None))
+            let x' = x1 |> List.choose (fun (r1, p1) -> x2 |> List.tryPick (fun (r2,p2) -> if r2 = r1 then Some (r1, FSharp.Core.Operators.min p1 p2) else None))
             n', x'
         let (n, x') = xs |> List.map monomialFactors |> List.reduce intersect
         (fromInteger n)::(normalizePowers x') |> product
