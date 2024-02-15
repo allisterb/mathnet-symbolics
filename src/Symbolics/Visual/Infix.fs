@@ -245,11 +245,11 @@ module Infix =
         parseVisual infix |> Result.map VisualExpression.toExpression
 
     [<CompiledName("ParseList")>]
-    let parseList (infix: string) =
-        let exprs = infix.TrimStart('[').TrimEnd(']').Split(',') |> Array.map (fun e -> let s = e.Split('=') in if s.Length = 1 then s.[0] else s.[1])
-        let r  = exprs |> Array.map(fun i -> parseVisual i |> Result.map VisualExpression.toExpression) |> Array.toList
-        let s, errors = r |> List.choose(function | Ok k -> Some k | _ -> None), r |> List.choose(function |Error e -> Some e | _ -> None)
-        if List.isEmpty errors then Ok s else Error(errors |> List.reduce (fun l r -> l + "\n" + r))
+    let parseEqnList (infix: string) =
+        let exprs = infix.TrimStart('[').TrimEnd(']').Split(',') |> Array.map (fun e -> let s = e.Split('=') in if s.Length = 2 then (s.[0], s.[1]) else failwith "not an equation" )
+        let r  = exprs |> Array.map(fun (i,e) -> parseVisual i |> Result.map VisualExpression.toExpression,parseVisual e |> Result.map VisualExpression.toExpression) |> Array.toList
+        let s, errors = r |> List.choose(function | Ok i, Ok k -> Some (i,k) | _ -> None), r |> List.choose(function |i,Error e -> Some (i,e) | _ -> None)
+        if List.isEmpty errors then Ok s else Error(errors |> List.map snd |> List.reduce (fun l r -> l + "\n" + r))
 
     [<CompiledName("TryParse")>]
     let tryParse (infix: string) =
