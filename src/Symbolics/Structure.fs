@@ -1,5 +1,7 @@
 ﻿namespace MathNet.Symbolics
 
+open System.Linq
+
 open MathNet.Symbolics
 
 [<RequireQualifiedAccess>]
@@ -14,6 +16,7 @@ module Structure =
         | Power _ -> 2
         | Function _ -> 1
         | FunctionN (_, xs) -> List.length xs
+        | FunctionDef (_, xs) -> 0
         | Number _ | Approximation _ | Identifier _ | Argument _ | Constant _ | ComplexInfinity | PositiveInfinity | NegativeInfinity -> 0
         | Undefined -> 0
 
@@ -29,7 +32,8 @@ module Structure =
     let rec freeOf symbol x =
         if symbol = x then false else
         match x with
-        | Sum ax | Product ax | FunctionN (_, ax) -> List.forall (freeOf symbol) ax
+        | Sum ax | Product ax | FunctionN (_, ax)  -> List.forall (freeOf symbol) ax
+        | FunctionDef (_, ax) -> ax |> Seq.exists(fun e -> e.ToString() = symbol.ToString()) |> not
         | Power (r, p) -> freeOf symbol r && freeOf symbol p
         | Function (_, x) -> freeOf symbol x
         | Number _ | Approximation _ | Identifier _ | Argument _ | Constant _ |  ComplexInfinity | PositiveInfinity | NegativeInfinity -> true
@@ -42,6 +46,8 @@ module Structure =
         | Sum ax | Product ax | FunctionN (_, ax) -> List.forall (freeOfSet symbols) ax
         | Power (r, p) -> freeOfSet symbols r && freeOfSet symbols p
         | Function (_, x) -> freeOfSet symbols x
+        | FunctionDef (_, ax) ->
+            let _symbols = symbols |> Seq.map (fun s -> s.ToString()) in ax |> Seq.forall (fun s -> not (_symbols.Contains(s.ToString())))  
         | Number _ | Approximation _ | Identifier _ | Argument _ | Constant _ |  ComplexInfinity | PositiveInfinity | NegativeInfinity -> true
         | Undefined -> true
 
@@ -54,6 +60,7 @@ module Structure =
         | Power (radix, p) -> (substitute y r radix) ** (substitute y r p)
         | Function (fn, x) -> apply fn (substitute y r x)
         | FunctionN (fn, xs) -> applyN fn (List.map (substitute y r) xs)
+        | FunctionDef _ -> x
         | Number _ | Approximation _ | Identifier _ | Argument _ | Constant _ |  ComplexInfinity | PositiveInfinity | NegativeInfinity -> x
         | Undefined -> x
 
@@ -63,7 +70,7 @@ module Structure =
         | Product ax -> product <| List.map f ax
         | Power (r, p) -> (f r) ** (f p)
         | Function (fn, x) -> apply fn (f x)
-        | FunctionN (fn, xs) -> applyN fn (List.map f xs)
+        | FunctionN (fn, xs) -> applyN fn (List.map f xs) 
         | x -> x
 
     [<CompiledName("Fold")>]
@@ -71,6 +78,7 @@ module Structure =
         | Sum ax | Product ax | FunctionN (_, ax) -> List.fold f s ax
         | Power (r, p) -> List.fold f s [r;p]
         | Function (_, x) -> f s x
+        | FunctionDef _ -> s
         | Number _ | Approximation _ | Identifier _ | Argument _ | Constant _ |  ComplexInfinity | PositiveInfinity | NegativeInfinity -> s
         | Undefined -> s
 

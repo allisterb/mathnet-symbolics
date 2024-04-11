@@ -95,6 +95,7 @@ module TypedExpression =
                     | _ -> ValueType.Undefined
                 TypedExpression.FunctionN (t, (f, [cnu; cz]))
             | FunctionN _ -> failwith "not supported"
+            | FunctionDef _ -> failwith "not supported"
 
             | Function (Factorial, x) ->
                 TypedExpression.Function (ValueType.Real, (Factorial, convert x))

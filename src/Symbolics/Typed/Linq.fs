@@ -140,6 +140,7 @@ module Linq =
                 let exprY = convertExpr x
                 Option.map2 hankelh2 exprX exprY
             | FunctionN(_) -> None
+            | FunctionDef _  -> None
             | PosIntPower(x, Number(y)) ->
                 let basis = convertExpr x
                 let rec exponentiate (power : BigRational) exp  =

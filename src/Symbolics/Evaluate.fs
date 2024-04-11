@@ -252,3 +252,4 @@ module Evaluate =
         | Power (r, p) -> fpower (evaluate symbols r) (evaluate symbols p) |> fnormalize
         | Function (f, x) -> fapply f (evaluate symbols x) |> fnormalize
         | FunctionN (f, xs) -> xs |> List.map (evaluate symbols) |> fapplyN f |> fnormalize
+        | FunctionDef _ -> Real 0.

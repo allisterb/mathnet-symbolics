@@ -39,6 +39,7 @@ module Approximate =
             | _ -> x
         | Argument _ -> x
         | FunctionN _
+        | FunctionDef _
         | ComplexInfinity
         | PositiveInfinity
         | NegativeInfinity

@@ -15,7 +15,7 @@ type Expression =
     | Power of Expression * Expression
     | Function of Function * Expression
     | FunctionN of FunctionN * (Expression list)
-    //| FunctionDef of Symbol * (Symbol list) * Expression
+    | FunctionDef of Symbol * (Symbol list)
     | ComplexInfinity
     | PositiveInfinity
     | NegativeInfinity
@@ -142,7 +142,7 @@ module Operators =
     let E : Expression = Constant E
 
     let symbol (name:string) : Expression = Identifier (Symbol name)
-
+    let symbolexpr (s:Symbol) = Identifier s 
     let undefined : Expression = Expression.Undefined
     let infinity : Expression = Expression.PositiveInfinity
     let complexInfinity : Expression = Expression.ComplexInfinity
@@ -188,6 +188,8 @@ module Operators =
             | Power (xr,xp), Power (yr,yp) -> if xr <> yr then compare xr yr else compare xp yp
             | Function (xf, x), Function (yf, y) -> if xf <> yf then xf < yf else compare x y
             | FunctionN (xf, xs), FunctionN (yf, ys) -> if xf <> yf then xf < yf else compareZip (List.rev xs) (List.rev ys)
+            | FunctionDef(_,_), _ -> false
+            | _, FunctionDef(_,_) -> false
             | Number _, _ -> true
             | _, Number _ -> false
             | Approximation _, _ -> true
@@ -838,7 +840,7 @@ module Operators =
         | _ -> Function(Factorial, x)
 
     let min (x:Expression) (y:Expression) : Expression = FunctionN (Min, [x; y])
-              
+
     let apply (f: Function) (x:Expression) : Expression =
         match f with
         | Abs -> abs x

@@ -43,7 +43,7 @@ type SymbolicExpression(expression:Expression) =
         | Sum _ -> SymbolicExpressionType.Sum
         | Product _ -> SymbolicExpressionType.Product
         | Power _ -> SymbolicExpressionType.Power
-        | Function _ | FunctionN _ -> SymbolicExpressionType.Function
+        | Function _ | FunctionN _ | FunctionDef _-> SymbolicExpressionType.Function
         | ComplexInfinity -> SymbolicExpressionType.ComplexInfinity
         | PositiveInfinity -> SymbolicExpressionType.PositiveInfinity
         | NegativeInfinity -> SymbolicExpressionType.NegativeInfinity

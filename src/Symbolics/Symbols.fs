@@ -34,7 +34,7 @@ type FunctionN =
     | HankelH1  // Hankel function of the first kind
     | HankelH2  // Hankel function of the second kind
     | Min
-
+   
 type Constant =
     | E
     | Pi

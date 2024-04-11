@@ -67,6 +67,7 @@ module Calculus =
         | Product [] -> failwith "invalid expression"
 
         | Function(Factorial, x) -> failwith "not supported"
+        | FunctionDef (s, x) as f -> if Structure.freeOf (Expression.Symbol (s.ToString())) f then Expression.Zero else FunctionDef(Symbol(s.ToString() + "_"), x)
      
     /// Differentiate expression to symbol and substitute symbol with value
     [<CompiledName("DifferentiateAt")>]

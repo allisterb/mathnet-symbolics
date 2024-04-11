@@ -46,6 +46,8 @@ module VisualExpression =
     let private functionNaryName f = Map.find f functionNaryNameMap
     let private nameFunction name = Map.find name nameFunctionMap
     let private nameFunctionNary name = Map.find name nameFunctionNaryMap
+    let private isDefinedFunctionName name = Map.tryFind name nameFunctionMap |> Option.isSome || Map.tryFind name nameFunctionNaryMap |> Option.isSome
+    let private isSymbol (v:VisualExpression) = match v with | VisualExpression.Symbol _ -> true | _ -> false
 
     let fromExpression (style:VisualExpressionStyle) expression =
         let compactPowersOfFunctions = style.CompactPowersOfFunctions
@@ -208,6 +210,9 @@ module VisualExpression =
             | FunctionN (f, xs) ->
                 VisualExpression.Function (functionNaryName f, BigInteger.One, xs |> List.map (convert 0))
                 |> parenthesis priority 3
+            | FunctionDef (f, xs) ->
+                VisualExpression.Function (f.ToString(), BigInteger.One, xs |> List.map (Identifier >> (convert 0)))
+                |> parenthesis priority 3
         convert 0 expression
 
     let toExpression visualExpression =
@@ -223,6 +228,12 @@ module VisualExpression =
             | VisualExpression.Fraction (numerator, denominator) -> (convert numerator)/(convert denominator)
             | VisualExpression.Power (radix, power) -> pow (convert radix) (convert power)
             | VisualExpression.Root (radix, power) -> root (fromInteger power) (convert radix)
+            | VisualExpression.Function (fn, power, [VisualExpression.Symbol s]) when not <| isDefinedFunctionName fn ->
+                let f = FunctionDef(Symbol fn, [Symbol s]) in
+                if power.IsOne then f else pow f (fromInteger power)
+            | VisualExpression.Function (fn, power, x) when not <| isDefinedFunctionName fn && Seq.forall isSymbol x ->
+                let f = FunctionDef(Symbol fn, List.map (fun vs -> Symbol (vs.ToString())) x) in
+                if power.IsOne then f else pow f (fromInteger power)
             | VisualExpression.Function (fn, power, [x]) ->
                 let applied = apply (nameFunction fn) (convert x)
                 if power.IsOne then applied else pow applied (fromInteger power)
