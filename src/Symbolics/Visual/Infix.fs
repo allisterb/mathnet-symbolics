@@ -244,12 +244,24 @@ module Infix =
     let parse (infix: string) =
         parseVisual infix |> Result.map VisualExpression.toExpression
 
-    [<CompiledName("ParseList")>]
+    [<CompiledName("ParseEqnList")>]
     let parseEqnList (infix: string) =
-        let exprs = infix.TrimStart('[').TrimEnd(']').Split(',') |> Array.map (fun e -> let s = e.Split('=') in if s.Length = 2 then (s.[0], s.[1]) else failwith "not an equation" )
+        let exprs = infix.TrimStart('[').TrimEnd(']').Split(',') |> Array.map (fun e -> let s = e.Split('=') in if s.Length = 2 then (s.[0], s.[1]) else failwithf "Not an equation list: %A." infix )
         let r  = exprs |> Array.map(fun (i,e) -> parseVisual i |> Result.map VisualExpression.toExpression,parseVisual e |> Result.map VisualExpression.toExpression) |> Array.toList
         let s, errors = r |> List.choose(function | Ok i, Ok k -> Some (i,k) | _ -> None), r |> List.choose(function |i,Error e -> Some (i,e) | _ -> None)
         if List.isEmpty errors then Ok s else Error(errors |> List.map snd |> List.reduce (fun l r -> l + "\n" + r))
+
+    let parseList (infix: string) =
+        let r = infix.TrimStart('[').TrimEnd(']').Split(',') |> Array.map (fun e -> parseVisual e |> Result.map VisualExpression.toExpression) |> Array.toList
+        let s, errors = r |> List.choose(function | Ok i -> Some i | _ -> None), r |> List.choose(function | Error e -> Some e | _ -> None)
+        if List.isEmpty errors then Ok s else Error(errors |> List.reduce (fun l r -> l + "\n" + r))
+
+    [<CompiledName("ParseMatrix")>]
+    let parseMatrix (infix: string) =
+        let r = infix.Replace("matrix(","").TrimEnd(')').Split(',') |> Array.map parseList
+        ()
+        //let s, errors = r |> Array.map(fun a -> Array.choose(function | Ok i -> Some (i,k) | _ -> None), r |> List.choose(function |i,Error e -> Some (i,e) | _ -> None)
+        //if List.isEmpty errors then Ok s else Error(errors |> List.map snd |> List.reduce (fun l r -> l + "\n" + r))
 
     [<CompiledName("TryParse")>]
     let tryParse (infix: string) =
