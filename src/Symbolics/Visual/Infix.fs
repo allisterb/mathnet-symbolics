@@ -258,10 +258,9 @@ module Infix =
 
     [<CompiledName("ParseMatrix")>]
     let parseMatrix (infix: string) =
-        let r = infix.Replace("matrix(","").TrimEnd(')').Split(',') |> Array.map parseList
-        ()
-        //let s, errors = r |> Array.map(fun a -> Array.choose(function | Ok i -> Some (i,k) | _ -> None), r |> List.choose(function |i,Error e -> Some (i,e) | _ -> None)
-        //if List.isEmpty errors then Ok s else Error(errors |> List.map snd |> List.reduce (fun l r -> l + "\n" + r))
+        let r = infix.Replace("matrix(","").TrimEnd(')').Split(',') |> Array.toList |> List.map parseList
+        let s, errors = r |> List.choose(function | Ok i -> Some i | _ -> None), r |> List.choose(function | Error e -> Some e | _ -> None)
+        if List.isEmpty errors then Ok s else Error(errors |> List.reduce (fun l r -> l + "\n" + r))
 
     [<CompiledName("TryParse")>]
     let tryParse (infix: string) =
