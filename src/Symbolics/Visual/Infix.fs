@@ -68,6 +68,9 @@ module private InfixParser =
         let sqrtTerm = str_ws "sqrt" >>. (between (str_ws "(") (str_ws ")") expr) |>> function
             | arg -> VisualExpression.Root (arg, bigint 2)
 
+        let logTerm = str_ws "log" >>. (between (str_ws "(") (str_ws ")") expr) |>> function
+            | arg -> VisualExpression.Function ("ln", BigInteger.One, [arg])
+
         let powTerm = str_ws "pow" >>. functionArgs |>> function
             | [VisualExpression.Negative _ as a; b]
             | [VisualExpression.Sum _ as a; b]
@@ -81,7 +84,7 @@ module private InfixParser =
 
         let term =
             number <|> parens expr <|> abs expr
-            <|> attempt sqrtTerm <|> attempt powTerm
+            <|> attempt sqrtTerm <|> logTerm <|> attempt powTerm
             <|> attempt functionTerm <|> attempt functionPowerTerm
             <|> identifier
 
