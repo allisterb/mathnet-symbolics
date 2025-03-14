@@ -259,6 +259,12 @@ module Infix =
         let s, errors = r |> List.choose(function | Ok i -> Some i | _ -> None), r |> List.choose(function | Error e -> Some e | _ -> None)
         if List.isEmpty errors then Ok s else Error(errors |> List.reduce (fun l r -> l + "\n" + r))
 
+    [<CompiledName("ParseLists")>]
+    let parseLists (infix: string) =
+        let r = infix.Replace("[[", "[").Replace("]]", "]").Replace("],[", "];[").Split(';') |> Array.toList |> List.map parseList
+        let s, errors = r |> List.choose(function | Ok i -> Some i | _ -> None), r |> List.choose(function | Error e -> Some e | _ -> None)
+        if List.isEmpty errors then Ok s else Error(errors |> List.reduce (fun l r -> l + "\n" + r))
+
     [<CompiledName("ParseMatrix")>]
     let parseMatrix (infix: string) =
         let r = infix.Replace("matrix(","").TrimEnd(')').Split(',') |> Array.toList |> List.map parseList
