@@ -3,7 +3,7 @@
 open System.IO
 open System.Text
 open MathNet.Symbolics
-
+open MathNet.Numerics
 
 module private InfixParser =
 
@@ -32,6 +32,7 @@ module private InfixParser =
         |>> fun num ->
             if num.IsInfinity then VisualExpression.Infinity
             elif num.IsInteger then BigInteger.Parse(num.String) |> VisualExpression.PositiveInteger
+            elif num.HasFraction then let r = BigRational.Parse(num.String) in VisualExpression.Fraction(VisualExpression.PositiveInteger r.Numerator, VisualExpression.PositiveInteger r.Denominator)
             else VisualExpression.PositiveFloatingPoint(float num.String)
 
     let symbolName : string parser =
@@ -267,7 +268,7 @@ module Infix =
 
     [<CompiledName("ParseMatrix")>]
     let parseMatrix (infix: string) =
-        let r = infix.Replace("matrix(","").TrimEnd(')').Split(',') |> Array.toList |> List.map parseList
+        let r = infix.Replace("matrix(","").TrimEnd(')').Replace("],[", "];[").Split(';') |> Array.toList |> List.map parseList
         let s, errors = r |> List.choose(function | Ok i -> Some i | _ -> None), r |> List.choose(function | Error e -> Some e | _ -> None)
         if List.isEmpty errors then Ok s else Error(errors |> List.reduce (fun l r -> l + "\n" + r))
 
