@@ -44,9 +44,12 @@ Minor internal simplifications and streamlining</PackageReleaseNotes>
     <Compile Include="Compile.fs" />
     <Compile Include="Evaluate.fs" />
     <Compile Include="SymbolicExpression.fs" />
-    <Compile Include="VariableSets.fs" />
-    <None Include="Script.fsx" />
-    <None Include="paket.references" />
+    <Compile Include="VariableSets.fs" />   
   </ItemGroup>
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
+
+    <ItemGroup>
+        <PackageReference Include="MathNet.Numerics.FSharp" Version="4.15.0" />
+        <PackageReference Include="FParsec" Version="1.0.3" />
+    </ItemGroup>
+    
 </Project>
